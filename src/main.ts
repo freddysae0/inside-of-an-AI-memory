@@ -10,6 +10,7 @@ import { HUD } from './ui/HUD';
 import { SECTOR_COPY } from './ui/copy';
 import { EntryRoom } from './scenes/EntryRoom';
 import { Datasets } from './scenes/Datasets';
+import { Emotions } from './scenes/Emotions';
 import { Corruption } from './scenes/Corruption';
 
 const SECTORS = ['entry', 'datasets', 'emotions', 'corruption', 'reconstruction'] as const;
@@ -32,9 +33,11 @@ if (initialCopy) hud.setSector(initialCopy);
 
 const entry = new EntryRoom(input);
 const datasets = new Datasets(scroll);
+const emotions = new Emotions(scroll);
 const corruptionScene = new Corruption(scroll, corruption);
 scenes.register(entry);
 scenes.register(datasets);
+scenes.register(emotions);
 scenes.register(corruptionScene);
 scenes.goto('entry');
 
