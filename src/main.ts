@@ -5,10 +5,12 @@ import { SceneManager } from './core/SceneManager';
 import { PostFX } from './core/PostFX';
 import { ScrollDirector } from './core/ScrollDirector';
 import { Transitions } from './core/Transitions';
+import { CorruptionEffect } from './core/Corruption';
 import { HUD } from './ui/HUD';
 import { SECTOR_COPY } from './ui/copy';
 import { EntryRoom } from './scenes/EntryRoom';
 import { Datasets } from './scenes/Datasets';
+import { Corruption } from './scenes/Corruption';
 
 const SECTORS = ['entry', 'datasets', 'emotions', 'corruption', 'reconstruction'] as const;
 
@@ -17,6 +19,8 @@ const renderer = new Renderer({ canvas });
 const input = new Input();
 const scenes = new SceneManager();
 const postfx = new PostFX({ gl: renderer.gl });
+const corruption = new CorruptionEffect();
+postfx.appendEffect(corruption);
 const transitions = new Transitions(renderer.gl);
 postfx.appendEffect(transitions.effect);
 const scroll = new ScrollDirector(SECTORS.length);
@@ -28,8 +32,10 @@ if (initialCopy) hud.setSector(initialCopy);
 
 const entry = new EntryRoom(input);
 const datasets = new Datasets(scroll);
+const corruptionScene = new Corruption(scroll, corruption);
 scenes.register(entry);
 scenes.register(datasets);
+scenes.register(corruptionScene);
 scenes.goto('entry');
 
 const applyScene = () => {
