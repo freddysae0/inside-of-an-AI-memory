@@ -12,7 +12,7 @@ const scenes = new SceneManager();
 const postfx = new PostFX({ gl: renderer.gl });
 const anim = new AnimationManager();
 
-const entry = new EntryRoom();
+const entry = new EntryRoom(input);
 scenes.register(entry);
 scenes.goto('entry');
 
