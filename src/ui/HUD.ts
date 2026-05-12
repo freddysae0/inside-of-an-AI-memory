@@ -16,9 +16,20 @@ export class HUD {
   private readonly promptEl = document.getElementById('prompt')!;
   private readonly titleEl = document.getElementById('prompt-title')!;
   private readonly bodyEl = document.getElementById('prompt-body')!;
+  private readonly outroEl = document.getElementById('outro')!;
 
   private currentId: string | null = null;
   private fadeTimer: number | null = null;
+  private outroVisible = false;
+
+  /** Show the outro epigraph during the final stretch of the journey. */
+  setOutro(visible: boolean): void {
+    if (visible === this.outroVisible) return;
+    this.outroVisible = visible;
+    this.outroEl.classList.toggle('is-visible', visible);
+    // When the outro is up, dim the sector prompt so the page reads as "done".
+    this.promptEl.classList.toggle('is-hidden', visible);
+  }
 
   setSector(copy: SectorCopy): void {
     if (this.currentId === copy.id) return;

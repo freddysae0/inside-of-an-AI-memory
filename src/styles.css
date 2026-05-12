@@ -41,6 +41,17 @@ body { min-height: 100vh; }
 .prompt p  { margin: 0; color: var(--muted); font-size: 11px; letter-spacing: 0.2em; line-height: 1.6; }
 .prompt.is-hidden { opacity: 0; }
 
+.outro {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  text-align: center; max-width: 38ch;
+  opacity: 0; transition: opacity 1200ms ease;
+  pointer-events: none;
+}
+.outro.is-visible { opacity: 1; }
+.outro__tag  { margin: 0 0 1.25rem; color: var(--muted); font-size: 10px; letter-spacing: 0.5em; }
+.outro__line { margin: 0 0 1.5rem; font-size: 14px; font-weight: 500; letter-spacing: 0.32em; }
+.outro__by   { margin: 0; color: var(--muted); font-size: 10px; letter-spacing: 0.32em; }
+
 .progress {
   position: absolute; left: 1.5rem; right: 1.5rem; bottom: 1.25rem; height: 1px;
   background: rgba(255, 255, 255, 0.06);
