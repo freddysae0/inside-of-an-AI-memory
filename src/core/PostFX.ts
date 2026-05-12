@@ -10,6 +10,7 @@ import {
   SMAAEffect,
   KernelSize,
   BlendFunction,
+  Effect,
 } from 'postprocessing';
 
 export interface PostFXOptions {
@@ -58,6 +59,11 @@ export class PostFX {
     this.composer.addPass(new EffectPass(this.renderPass.mainCamera, smaa));
     this.composer.addPass(new EffectPass(this.renderPass.mainCamera, this.bloom));
     this.composer.addPass(new EffectPass(this.renderPass.mainCamera, this.chromaticAberration, this.noise, this.vignette));
+  }
+
+  /** Append a custom effect (e.g. dissolve transition) as the final pass. */
+  appendEffect(effect: Effect): void {
+    this.composer.addPass(new EffectPass(this.renderPass.mainCamera, effect));
   }
 
   setScene(scene: THREE.Scene, camera: THREE.Camera): void {
