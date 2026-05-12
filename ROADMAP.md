@@ -18,26 +18,26 @@ The journey is scroll-driven, with smooth Lenis-eased transitions. The HUD names
 | # | Sector          | Narrative beat                                                                 | Signature technique                                                       | Status |
 |---|-----------------|--------------------------------------------------------------------------------|---------------------------------------------------------------------------|--------|
 | 0 | ENTRY           | The user wakes inside the core. A single living object breathes in front of them. | **Living Material** (vertex simplex + heartbeat + fresnel + pointer bulge) | ✅ done |
-| 1 | DATASETS        | Millions of data motes drift; they momentarily form objects, then dissolve.    | **Digital Dust** instanced particle field with flow-field motion          | ⏳ Phase D |
-| 2 | EMOTIONS        | The AI remembers feeling. The volume of space distorts like a liquid surface.  | **Liquid distortion** + per-emotion LUT-style color grading shift         | ⏳ Phase F |
-| 3 | CORRUPTION      | Memory is failing. Reality glitches harder the longer the user lingers.        | **Reality Corruption** custom postprocessing pass (UV warp + scanlines + RGB split) | ⏳ Phase E |
-| 4 | RECONSTRUCTION  | The fragments find each other again.                                            | Dust reverses into a coherent silhouette; outro copy fades in             | ⏳ Phase G |
+| 1 | DATASETS        | Millions of data motes drift; they momentarily form objects, then dissolve.    | **Digital Dust** instanced particle field with flow-field motion          | ✅ done |
+| 2 | EMOTIONS        | The AI remembers feeling. The volume of space distorts like a liquid surface.  | **Liquid distortion** + per-emotion LUT-style color grading shift         | ✅ done |
+| 3 | CORRUPTION      | Memory is failing. Reality glitches harder the longer the user lingers.        | **Reality Corruption** custom postprocessing pass (UV warp + scanlines + RGB split) | ✅ done |
+| 4 | RECONSTRUCTION  | The fragments find each other again.                                            | Dust reverses into a coherent silhouette; outro copy fades in             | ✅ done |
 
 ## Phases (in execution order)
 
-| Phase | Goal                                                                 | Commits      | Status |
-|-------|----------------------------------------------------------------------|--------------|--------|
-| 0     | Charter + scaffold + core modules + PostFX + Living Material          | 15 commits   | ✅ done |
-| A     | Scroll director (Lenis) — drives a single `journey` value in `[0, 1]` | ~3           | ⏳     |
-| B     | HUD sync — HTML sector name, progress bar, per-sector copy reveal     | ~2           | ⏳     |
-| C     | Dissolve transition — custom Effect crossfades scenes via simplex     | ~2           | ⏳     |
-| D     | Digital Dust scene — GPU-instanced particle field                     | ~3           | ⏳     |
-| E     | Reality Corruption — custom EffectPass with escalation driven by scroll | ~3         | ⏳     |
-| F     | Emotions room — liquid distortion + LUT-style grading shift           | ~3           | ⏳     |
-| G     | Reconstruction finale + outro reveal                                  | ~2           | ⏳     |
-| H     | Audio analyser → `uAudio` uniform on signature shaders                | ~2           | ⏳     |
-| I     | Loading screen tied to AssetLoader progress                           | ~2           | ⏳     |
-| J     | Polish — adaptive DPR, manualChunks, perf pass, README + screenshots  | ~3           | ⏳     |
+| Phase | Goal                                                                 | Status |
+|-------|----------------------------------------------------------------------|--------|
+| 0     | Charter + scaffold + core modules + PostFX + Living Material          | ✅ done |
+| A     | Scroll director (Lenis) — drives a single `journey` value in `[0, 1]` | ✅ done |
+| B     | HUD sync — HTML sector name, progress bar, per-sector copy reveal     | ✅ done |
+| C     | Dissolve transition — custom Effect crossfades scenes via simplex     | ✅ done |
+| D     | Digital Dust scene — GPU particle field                               | ✅ done |
+| E     | Reality Corruption — custom EffectPass with escalation                | ✅ done |
+| F     | Emotions room — liquid distortion + palette blend                     | ✅ done |
+| G     | Reconstruction finale + outro reveal                                  | ✅ done |
+| H     | Audio analyser → bass into Living/Liquid/Corruption uniforms          | ✅ done |
+| I     | Loading screen tied to AssetLoader progress                           | ✅ done |
+| J     | Polish — adaptive DPR, manualChunks, README                           | ✅ done |
 
 ## Architecture additions (beyond Phase 0)
 
