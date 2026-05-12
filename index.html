@@ -9,6 +9,12 @@
   </head>
   <body>
     <canvas id="stage"></canvas>
+    <div id="loader" class="loader" aria-live="polite">
+      <div class="loader__core"></div>
+      <p class="loader__title">memory_core</p>
+      <p class="loader__sub"><span id="loader-label">initializing</span></p>
+      <div class="loader__bar"><div class="loader__fill" id="loader-fill"></div></div>
+    </div>
     <main id="ui" aria-hidden="false">
       <header class="hud hud--tl">
         <span class="hud__dot"></span>

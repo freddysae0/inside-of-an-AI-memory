@@ -41,6 +41,26 @@ body { min-height: 100vh; }
 .prompt p  { margin: 0; color: var(--muted); font-size: 11px; letter-spacing: 0.2em; line-height: 1.6; }
 .prompt.is-hidden { opacity: 0; }
 
+.loader {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1.5rem;
+  background: var(--bg);
+  transition: opacity 800ms ease, visibility 800ms;
+}
+.loader.is-done { opacity: 0; visibility: hidden; }
+.loader__core {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 18px var(--accent);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.loader__title { margin: 0; font-size: 11px; letter-spacing: 0.55em; }
+.loader__sub   { margin: 0; color: var(--muted); font-size: 10px; letter-spacing: 0.35em; }
+.loader__bar {
+  width: 220px; height: 1px; background: rgba(255,255,255,0.08); overflow: hidden;
+}
+.loader__fill { width: 0%; height: 100%; background: var(--accent); transition: width 180ms ease; }
+
 .audio-toggle {
   position: fixed; left: 1.5rem; bottom: 2rem; z-index: 3;
   background: transparent; border: 1px solid rgba(255,255,255,0.12);
