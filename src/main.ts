@@ -8,6 +8,7 @@ import { Transitions } from './core/Transitions';
 import { HUD } from './ui/HUD';
 import { SECTOR_COPY } from './ui/copy';
 import { EntryRoom } from './scenes/EntryRoom';
+import { Datasets } from './scenes/Datasets';
 
 const SECTORS = ['entry', 'datasets', 'emotions', 'corruption', 'reconstruction'] as const;
 
@@ -26,7 +27,9 @@ const initialCopy = SECTOR_COPY[0];
 if (initialCopy) hud.setSector(initialCopy);
 
 const entry = new EntryRoom(input);
+const datasets = new Datasets(scroll);
 scenes.register(entry);
+scenes.register(datasets);
 scenes.goto('entry');
 
 const applyScene = () => {
