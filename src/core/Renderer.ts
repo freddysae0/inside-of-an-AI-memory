@@ -41,6 +41,17 @@ export class Renderer {
     this.gl.setSize(w, h, false);
   }
 
+  /** Adjust pixel ratio (used by PerfMonitor for adaptive quality). */
+  setPixelRatio(dpr: number): void {
+    this.dpr = Math.min(dpr, this.maxDpr);
+    this.gl.setPixelRatio(this.dpr);
+    // Re-apply size so framebuffer matches new internal resolution.
+    this.gl.setSize(this.size.x, this.size.y, false);
+  }
+
+  get pixelRatio(): number { return this.dpr; }
+  get maxPixelRatio(): number { return this.maxDpr; }
+
   dispose(): void {
     window.removeEventListener('resize', this.onResize);
     this.gl.dispose();

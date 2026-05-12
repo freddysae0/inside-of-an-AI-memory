@@ -8,6 +8,7 @@ import { Transitions } from './core/Transitions';
 import { CorruptionEffect } from './core/Corruption';
 import { Audio } from './core/Audio';
 import { AssetLoader } from './core/AssetLoader';
+import { PerfMonitor } from './core/PerfMonitor';
 import { HUD } from './ui/HUD';
 import { SECTOR_COPY } from './ui/copy';
 import { EntryRoom } from './scenes/EntryRoom';
@@ -106,7 +107,17 @@ async function boot(): Promise<void> {
 
   const progressBar = document.getElementById('progress-bar');
 
+  const perf = new PerfMonitor({
+    maxDpr: renderer.maxPixelRatio,
+    apply: (dpr) => {
+      renderer.setPixelRatio(dpr);
+      postfx.setSize(renderer.size.x, renderer.size.y);
+      transitions.setSize(renderer.size.x, renderer.size.y);
+    },
+  });
+
   anim.add((ctx) => {
+    perf.tick(ctx.delta);
     input.update(ctx.delta);
     scroll.update(ctx.time);
     audio.update();
