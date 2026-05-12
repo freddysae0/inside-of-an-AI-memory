@@ -12,6 +12,7 @@ import { EntryRoom } from './scenes/EntryRoom';
 import { Datasets } from './scenes/Datasets';
 import { Emotions } from './scenes/Emotions';
 import { Corruption } from './scenes/Corruption';
+import { Reconstruction } from './scenes/Reconstruction';
 
 const SECTORS = ['entry', 'datasets', 'emotions', 'corruption', 'reconstruction'] as const;
 
@@ -35,10 +36,12 @@ const entry = new EntryRoom(input);
 const datasets = new Datasets(scroll);
 const emotions = new Emotions(scroll);
 const corruptionScene = new Corruption(scroll, corruption);
+const reconstruction = new Reconstruction(scroll);
 scenes.register(entry);
 scenes.register(datasets);
 scenes.register(emotions);
 scenes.register(corruptionScene);
+scenes.register(reconstruction);
 scenes.goto('entry');
 
 const applyScene = () => {
@@ -78,6 +81,7 @@ anim.add((ctx) => {
   transitions.update(ctx.delta);
   postfx.render(ctx.delta);
   if (progressBar) progressBar.style.width = `${(scroll.journey * 100).toFixed(2)}%`;
+  hud.setOutro(scroll.journey > 0.95);
 });
 
 anim.start();
