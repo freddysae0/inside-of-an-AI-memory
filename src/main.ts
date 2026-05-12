@@ -1,31 +1,27 @@
-import * as THREE from 'three';
+import { Renderer } from './core/Renderer';
+import { AnimationManager } from './core/AnimationManager';
+import { Input } from './core/Input';
+import { SceneManager } from './core/SceneManager';
+import { EntryRoom } from './scenes/EntryRoom';
 
-// Bootstrap placeholder — real modules land in src/core/* in follow-up commits.
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight, false);
-renderer.setClearColor(0x05060a, 1);
+const renderer = new Renderer({ canvas });
+const input = new Input();
+const scenes = new SceneManager();
+const anim = new AnimationManager();
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 0, 4);
+const entry = new EntryRoom();
+scenes.register(entry);
+scenes.goto('entry');
+scenes.resize(renderer.size.x, renderer.size.y);
 
-// Provisional sentinel — replaced by the entry-room scene next commit.
-const sentinel = new THREE.Mesh(
-  new THREE.IcosahedronGeometry(1, 3),
-  new THREE.MeshBasicMaterial({ color: 0x223040, wireframe: true }),
-);
-scene.add(sentinel);
+window.addEventListener('resize', () => scenes.resize(renderer.size.x, renderer.size.y));
 
-addEventListener('resize', () => {
-  renderer.setSize(window.innerWidth, window.innerHeight, false);
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
+anim.add((ctx) => {
+  input.update(ctx.delta);
+  scenes.update(ctx);
+  const cur = scenes.current;
+  if (cur) renderer.gl.render(cur.scene, cur.camera);
 });
 
-renderer.setAnimationLoop((t) => {
-  sentinel.rotation.y = t * 0.0002;
-  sentinel.rotation.x = t * 0.0001;
-  renderer.render(scene, camera);
-});
+anim.start();
