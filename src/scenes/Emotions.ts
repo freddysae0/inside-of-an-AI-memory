@@ -35,6 +35,11 @@ export class Emotions implements MemoryScene {
   enter(): void {}
   exit(): void {}
 
+  /** Boost the liquid amplitude by an audio-derived 0..1 value. */
+  setAudioBass(v: number): void {
+    this.material.uniforms.uAmplitude.value = 0.22 + v * 0.14;
+  }
+
   update(ctx: FrameContext): void {
     this.blob.rotation.y = ctx.time * 0.05;
     this.blob.rotation.x = Math.sin(ctx.time * 0.13) * 0.2;

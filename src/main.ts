@@ -6,6 +6,7 @@ import { PostFX } from './core/PostFX';
 import { ScrollDirector } from './core/ScrollDirector';
 import { Transitions } from './core/Transitions';
 import { CorruptionEffect } from './core/Corruption';
+import { Audio } from './core/Audio';
 import { HUD } from './ui/HUD';
 import { SECTOR_COPY } from './ui/copy';
 import { EntryRoom } from './scenes/EntryRoom';
@@ -27,7 +28,14 @@ const transitions = new Transitions(renderer.gl);
 postfx.appendEffect(transitions.effect);
 const scroll = new ScrollDirector(SECTORS.length);
 const hud = new HUD();
+const audio = new Audio();
 const anim = new AnimationManager();
+
+const audioToggle = document.getElementById('audio-toggle') as HTMLButtonElement | null;
+audioToggle?.addEventListener('click', () => {
+  audio.start();
+  audioToggle.setAttribute('aria-pressed', 'true');
+});
 
 const initialCopy = SECTOR_COPY[0];
 if (initialCopy) hud.setSector(initialCopy);
@@ -77,7 +85,22 @@ const progressBar = document.getElementById('progress-bar');
 anim.add((ctx) => {
   input.update(ctx.delta);
   scroll.update(ctx.time);
+  audio.update();
+
+  // Audio → shader bridge. Bass thumps entry-core breath + emotions
+  // amplitude, and (below) adds a corruption-intensity floor.
+  const bassBoost = audio.bass;
+  entry.setAudioBass(bassBoost);
+  emotions.setAudioBass(bassBoost);
+
   scenes.update(ctx);
+
+  // Add an audio-driven floor to corruption intensity but only inside that sector.
+  if (scroll.sector === 3) {
+    const cur = corruption.uniforms.get('uIntensity');
+    if (cur) cur.value = Math.max(cur.value, bassBoost * 0.5);
+  }
+
   transitions.update(ctx.delta);
   postfx.render(ctx.delta);
   if (progressBar) progressBar.style.width = `${(scroll.journey * 100).toFixed(2)}%`;
