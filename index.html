@@ -19,11 +19,15 @@
         <span class="hud__label">sector</span>
         <span class="hud__sub" id="sector-name">entry</span>
       </header>
+      <div class="progress" aria-hidden="true">
+        <div class="progress__bar" id="progress-bar"></div>
+      </div>
       <section class="prompt" id="prompt">
-        <h1>inside an ai memory core</h1>
-        <p>move to listen. scroll to descend.</p>
+        <h1 id="prompt-title">inside an ai memory core</h1>
+        <p id="prompt-body">scroll to descend.</p>
       </section>
     </main>
+    <div id="scroll-spacer" aria-hidden="true"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
