@@ -1,0 +1,38 @@
+export interface SectorCopy {
+  id: string;
+  name: string;       // displayed in top-right
+  title: string;      // hero line
+  body: string;       // subtitle
+}
+
+/**
+ * The HTML overlay's typed API. Holds references to the DOM nodes
+ * declared in index.html and mutates them in response to scroll/scene
+ * events. Everything is fixed-position so the WebGL canvas stays on top
+ * of the scroll spacer, and the HUD floats above the canvas.
+ */
+export class HUD {
+  private readonly sectorNameEl = document.getElementById('sector-name')!;
+  private readonly promptEl = document.getElementById('prompt')!;
+  private readonly titleEl = document.getElementById('prompt-title')!;
+  private readonly bodyEl = document.getElementById('prompt-body')!;
+
+  private currentId: string | null = null;
+  private fadeTimer: number | null = null;
+
+  setSector(copy: SectorCopy): void {
+    if (this.currentId === copy.id) return;
+    this.currentId = copy.id;
+    this.sectorNameEl.textContent = copy.name.toLowerCase();
+
+    // Fade out → swap → fade in. CSS handles the easing.
+    this.promptEl.classList.add('is-hidden');
+    if (this.fadeTimer !== null) window.clearTimeout(this.fadeTimer);
+    this.fadeTimer = window.setTimeout(() => {
+      this.titleEl.textContent = copy.title.toLowerCase();
+      this.bodyEl.textContent = copy.body.toLowerCase();
+      this.promptEl.classList.remove('is-hidden');
+      this.fadeTimer = null;
+    }, 350);
+  }
+}
