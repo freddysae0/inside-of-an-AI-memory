@@ -4,6 +4,8 @@ import { Input } from './core/Input';
 import { SceneManager } from './core/SceneManager';
 import { PostFX } from './core/PostFX';
 import { ScrollDirector } from './core/ScrollDirector';
+import { HUD } from './ui/HUD';
+import { SECTOR_COPY } from './ui/copy';
 import { EntryRoom } from './scenes/EntryRoom';
 
 const SECTORS = ['entry', 'datasets', 'emotions', 'corruption', 'reconstruction'] as const;
@@ -14,7 +16,11 @@ const input = new Input();
 const scenes = new SceneManager();
 const postfx = new PostFX({ gl: renderer.gl });
 const scroll = new ScrollDirector(SECTORS.length);
+const hud = new HUD();
 const anim = new AnimationManager();
+
+const initialCopy = SECTOR_COPY[0];
+if (initialCopy) hud.setSector(initialCopy);
 
 const entry = new EntryRoom(input);
 scenes.register(entry);
@@ -28,6 +34,8 @@ applyScene();
 
 scroll.onSectorChange((_prev, next) => {
   const id = SECTORS[next];
+  const copy = SECTOR_COPY[next];
+  if (copy) hud.setSector(copy);
   if (id && scenes.current?.id !== id) {
     // Only switch if a scene with that id is registered; later phases register the rest.
     try {
