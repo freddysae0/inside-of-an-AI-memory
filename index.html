@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#05060a" />
+    <title>Inside an AI Memory Core</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+    <main id="ui" aria-hidden="false">
+      <header class="hud hud--tl">
+        <span class="hud__dot"></span>
+        <span class="hud__label">memory_core</span>
+        <span class="hud__sub">offline · last sync —</span>
+      </header>
+      <header class="hud hud--tr">
+        <span class="hud__label">sector</span>
+        <span class="hud__sub" id="sector-name">entry</span>
+      </header>
+      <section class="prompt" id="prompt">
+        <h1>inside an ai memory core</h1>
+        <p>move to listen. scroll to descend.</p>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

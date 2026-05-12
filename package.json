@@ -1,0 +1,24 @@
+{
+  "name": "inside-of-an-ai-memory",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Inside an AI Memory Core — WebGL final project for Harbour.Space, WebGL in Practice",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "lenis": "^1.1.13",
+    "postprocessing": "^6.36.4",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.169.0",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8",
+    "vite-plugin-glsl": "^1.3.0"
+  }
+}

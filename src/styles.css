@@ -1,0 +1,35 @@
+:root {
+  --bg: #05060a;
+  --fg: #d8dde6;
+  --muted: #6b7180;
+  --accent: #8af;
+  font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--fg); }
+
+#stage { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+
+#ui {
+  position: fixed; inset: 0; pointer-events: none;
+  font-size: 12px; letter-spacing: 0.08em; text-transform: lowercase;
+  mix-blend-mode: screen;
+}
+
+.hud { position: absolute; display: flex; gap: 0.6rem; align-items: center; padding: 1.25rem 1.5rem; }
+.hud--tl { top: 0; left: 0; }
+.hud--tr { top: 0; right: 0; }
+.hud__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2.4s ease-in-out infinite; }
+.hud__label { color: var(--fg); }
+.hud__sub { color: var(--muted); }
+
+.prompt {
+  position: absolute; left: 50%; bottom: 8vh; transform: translateX(-50%);
+  text-align: center; max-width: 36ch;
+}
+.prompt h1 { margin: 0 0 0.5rem; font-size: 13px; font-weight: 500; letter-spacing: 0.4em; }
+.prompt p  { margin: 0; color: var(--muted); font-size: 11px; letter-spacing: 0.2em; }
+
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
