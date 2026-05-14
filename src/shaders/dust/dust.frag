@@ -14,29 +14,34 @@ void main() {
   float r = dot(p, p);
   if (r > 1.0) discard;
 
-  // Per-particle edge softness — driven by an *uncorrelated* hash over
-  // vSeed so it doesn't track the size variety. Drift covers everything
-  // from 0.04 (very soft halo) to 0.92 (crisp dot). Form=1 collapses
-  // to a single value so every letter pixel reads identically.
+  float isLost = step(uLostThreshold, vSeed);
+
+  // Per-particle edge softness — uncorrelated hash from size variety.
+  // Drift covers 0.04 (very soft halo) → 0.92 (crisp dot). Form=1
+  // collapses to a single value so every letter pixel reads identically.
+  // Lost particles collapse to a fixed soft edge so they don't sparkle
+  // — they're remnants, not living motes.
   float seedEdge  = hashSeed(vSeed * 23.0);
   float seedAlpha = hashSeed(vSeed * 37.0);
-  float driftEdge = 0.04 + seedEdge * 0.88;
+  float driftEdgeLive = 0.04 + seedEdge * 0.88;
+  float driftEdge = mix(driftEdgeLive, 0.30, isLost);
   float formEdge  = 0.55;
   float edgeIn = mix(driftEdge, formEdge, uForm);
   float alpha = smoothstep(1.0, edgeIn, r);
 
-  // Per-particle alpha bias in drift — some pixels are bright, others
-  // are faint mist. Uniform at form=1 so the text reads dense.
-  float driftAlpha = 0.35 + seedAlpha * 0.95;
+  // Per-particle alpha bias in drift — some are bright, others faint.
+  // Uniform at form=1. Lost particles get a fixed *low* alpha so they
+  // never dominate the surviving silhouette they're meant to surround.
+  float driftAlphaLive = 0.35 + seedAlpha * 0.95;
+  float driftAlpha = mix(driftAlphaLive, 0.28, isLost);
   float formAlpha  = 1.0;
   float alphaMult = mix(driftAlpha, formAlpha, uForm);
 
   // Two-tone palette — random pick per seed.
   vec3 col = mix(uColorA, uColorB, step(0.5, vSeed));
 
-  // Lost particles desaturate and dim. RECONSTRUCTION uses this to
-  // mark the ~25% that never reassemble.
-  float isLost = step(uLostThreshold, vSeed);
+  // Lost particles desaturate and dim. Used by RECONSTRUCTION to
+  // mark the percentage that never reassemble.
   float lum = dot(col, vec3(0.299, 0.587, 0.114));
   col = mix(col, vec3(lum * 0.55), isLost * 0.72);
 
