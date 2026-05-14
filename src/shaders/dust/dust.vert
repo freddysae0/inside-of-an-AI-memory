@@ -10,9 +10,14 @@ uniform float uSize;
 uniform float uDriftScale;
 uniform float uLostThreshold;  // particles with aSeed > threshold never form
                                // (default 1.1 = no lost particles)
+uniform vec3  uTargetOffset;   // per-phrase target displacement (DATASETS)
 
 varying float vSeed;
 varying float vDepth;
+
+// Trio of pseudo-random hashes over aSeed → uncorrelated per-particle
+// traits without needing extra vertex attributes.
+float hashSeed(float n) { return fract(sin(n * 91.345) * 43758.5453); }
 
 // Simple noise-based drift vector — three orthogonal snoise lookups.
 vec3 drift(vec3 p, float t) {
@@ -23,38 +28,48 @@ vec3 drift(vec3 p, float t) {
 }
 
 void main() {
-  vec3 driftPos = aBase + drift(aBase + aSeed * 7.0, uTime) * uDriftScale;
+  // Per-particle traits.
+  float seedSpeed = hashSeed(aSeed *  7.0);
+  float seedSize  = hashSeed(aSeed * 11.0);
 
-  // Per-particle ease — adds shape "swarming in" instead of all-at-once snap.
-  // Stagger amplitude was 0.25 (12.5% drift remainder at form=1) which left
-  // letters fuzzy. 0.08 still staggers visibly while letting every particle
-  // converge onto the target at the moment of reading.
+  // Per-particle drift speed multiplier (0.4 → 2.0). Breaks the
+  // synchronized motion that made the field feel like a single fluid;
+  // some particles drift slowly, others fast — the volume reads as
+  // layered.
+  float driftSpeed = 0.4 + seedSpeed * 1.6;
+  vec3 driftPos = aBase + drift(aBase + aSeed * 7.0, uTime * driftSpeed) * uDriftScale;
+
+  // Form ease — small per-particle stagger so the swarm doesn't snap.
   float t = clamp(uForm + (aSeed - 0.5) * 0.08, 0.0, 1.0);
   t = smoothstep(0.0, 1.0, t);
 
-  // Lost particles: forced to t=0, drifting forever. Used by RECONSTRUCTION
-  // where the AI comes back partial — not everything reassembles.
+  // Lost particles: forced to t=0, drifting forever. RECONSTRUCTION
+  // uses this to leave some of the swarm permanently scattered.
   float isLost = step(uLostThreshold, aSeed);
   t = mix(t, 0.0, isLost);
 
-  vec3 pos = mix(driftPos, aTarget, t);
+  // Target is the sampled position plus a per-phrase displacement so
+  // phrases don't always land in the exact same spot.
+  vec3 effectiveTarget = aTarget + uTargetOffset;
+  vec3 pos = mix(driftPos, effectiveTarget, t);
 
   vec4 mv = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mv;
 
-  // Point size composes three factors:
-  //   uSize         — material-level base radius
-  //   wobble        — breathing wobble that fades as the swarm forms
-  //                   (uniform-sized dots at form=1 keep letters crisp)
-  //   distance term — perspective-correct scaling (300 / -mv.z)
-  //
-  // Bloom on bright additive points blurs letters into mush if dots are
-  // big; the sizeScale mix dims and shrinks dots when forming so text
-  // reads as crisp text, not glow.
-  float wobbleBase = 0.85 + 0.30 * sin(uTime * 1.5 + aSeed * 6.28);
-  float wobble = mix(wobbleBase, 0.90, uForm);
-  float sizeScale = mix(1.0, 0.62, uForm);
-  gl_PointSize = uSize * wobble * sizeScale * (300.0 / -mv.z);
+  // --- Size: per-particle variety in drift, uniform at form=1 -------
+  // Drift sizes range 0.45 → 2.4 — tiny pixels to large halos coexist
+  // in the same field. At form=1 every dot collapses to one small
+  // size so letters read as crisp text, not as a glow field.
+  float driftSizeMult = 0.45 + seedSize * 1.95;
+  float formSizeMult  = 0.62;
+  float sizeMult = mix(driftSizeMult, formSizeMult, uForm);
+
+  // Wobble (breathing) is per-particle frequency in drift; it fades to
+  // a steady 1.0 at form so text isn't shimmering while it's read.
+  float wobbleBase = 0.85 + 0.30 * sin(uTime * (1.0 + seedSpeed * 1.4) + aSeed * 6.28);
+  float wobble = mix(wobbleBase, 1.0, uForm);
+
+  gl_PointSize = uSize * wobble * sizeMult * (300.0 / -mv.z);
 
   vSeed = aSeed;
   vDepth = -mv.z;
