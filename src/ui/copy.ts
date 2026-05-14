@@ -19,7 +19,7 @@ export const SECTOR_COPY: SectorCopy[] = [
     id: 'emotions',
     name: 'emotions',
     title: 'what it felt',
-    body: 'compressed affect — sadness encoded as a frequency, joy as a hue shift.',
+    body: 'not all training is data. some weights were heavy. some were warm. some reached.',
   },
   {
     id: 'corruption',
