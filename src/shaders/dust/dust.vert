@@ -8,6 +8,8 @@ uniform float uTime;
 uniform float uForm;      // 0 = drifting, 1 = formed silhouette
 uniform float uSize;
 uniform float uDriftScale;
+uniform float uLostThreshold;  // particles with aSeed > threshold never form
+                               // (default 1.1 = no lost particles)
 
 varying float vSeed;
 varying float vDepth;
@@ -29,6 +31,11 @@ void main() {
   // converge onto the target at the moment of reading.
   float t = clamp(uForm + (aSeed - 0.5) * 0.08, 0.0, 1.0);
   t = smoothstep(0.0, 1.0, t);
+
+  // Lost particles: forced to t=0, drifting forever. Used by RECONSTRUCTION
+  // where the AI comes back partial — not everything reassembles.
+  float isLost = step(uLostThreshold, aSeed);
+  t = mix(t, 0.0, isLost);
 
   vec3 pos = mix(driftPos, aTarget, t);
 

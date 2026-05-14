@@ -9,6 +9,7 @@ export interface DustUniforms {
   uSize: { value: number };
   uDriftScale: { value: number };
   uOpacity: { value: number };
+  uLostThreshold: { value: number };
   uColorA: { value: THREE.Color };
   uColorB: { value: THREE.Color };
 }
@@ -28,6 +29,7 @@ export class DustMaterial extends THREE.ShaderMaterial {
         uSize: { value: 1.4 },
         uDriftScale: { value: 0.55 },
         uOpacity: { value: 0.95 },
+        uLostThreshold: { value: 1.1 },   // > max possible seed → no lost particles
         uColorA: { value: new THREE.Color('#7ea8ff') },
         uColorB: { value: new THREE.Color('#c8b5ff') },
       },

@@ -2,6 +2,7 @@ uniform vec3 uColorA;
 uniform vec3 uColorB;
 uniform float uOpacity;
 uniform float uForm;
+uniform float uLostThreshold;  // matches the vert uniform
 
 varying float vSeed;
 varying float vDepth;
@@ -19,6 +20,13 @@ void main() {
 
   // Two-tone particles — random pick per seed.
   vec3 col = mix(uColorA, uColorB, step(0.5, vSeed));
+
+  // Lost particles desaturate and dim — they read as 'the ones the AI
+  // could not bring back'. Pulled toward luminance-grey so they don't
+  // compete with the surviving silhouette for attention.
+  float isLost = step(uLostThreshold, vSeed);
+  float lum = dot(col, vec3(0.299, 0.587, 0.114));
+  col = mix(col, vec3(lum * 0.55), isLost * 0.72);
 
   // Drop colour luminance while forming so dots fall under the bloom
   // luminance threshold (0.55). Drift state keeps full colour — the
