@@ -108,7 +108,9 @@ async function boot(): Promise<void> {
   applySize();
   window.addEventListener('resize', applySize);
 
-  const progressBar = document.getElementById('progress-bar');
+  const progressBar    = document.getElementById('progress-bar');
+  const progressReadout = document.getElementById('progress-readout');
+  const depthReadout    = document.getElementById('depth-readout');
 
   const perf = new PerfMonitor({
     maxDpr: renderer.maxPixelRatio,
@@ -138,7 +140,13 @@ async function boot(): Promise<void> {
 
     transitions.update(ctx.delta);
     postfx.render(ctx.delta);
-    if (progressBar) progressBar.style.width = `${(scroll.journey * 100).toFixed(2)}%`;
+    // Depth readout: percent of journey, padded to 2 digits so the
+    // HUD never reflows its width as the number grows.
+    const pct = scroll.journey * 100;
+    if (progressBar) progressBar.style.width = `${pct.toFixed(2)}%`;
+    const pctStr = `${pct.toFixed(0).padStart(2, '0')}%`;
+    if (progressReadout) progressReadout.textContent = pctStr;
+    if (depthReadout)    depthReadout.textContent    = pctStr;
     hud.setOutro(scroll.journey > 0.95);
   });
 

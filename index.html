@@ -3,52 +3,129 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#05060a" />
+    <meta name="theme-color" content="#0a0a0f" />
     <title>Inside an AI Memory Core</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    />
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
     <canvas id="stage"></canvas>
+
+    <!-- Global decorative overlays — CRT signal texture sits between
+         the canvas and the HUD so WebGL + UI read as one screen. -->
+    <div class="cyber-grid" aria-hidden="true"></div>
+    <div class="cyber-vignette" aria-hidden="true"></div>
+    <div class="cyber-scanlines" aria-hidden="true"></div>
+
+    <!-- Boot terminal -->
     <div id="loader" class="loader" aria-live="polite">
-      <div class="loader__core"></div>
-      <p class="loader__title">memory_core</p>
-      <p class="loader__sub"><span id="loader-label">initializing</span></p>
-      <div class="loader__bar"><div class="loader__fill" id="loader-fill"></div></div>
+      <div class="loader__terminal">
+        <header class="loader__header">
+          <span class="dot dot--red" aria-hidden="true"></span>
+          <span class="dot dot--yellow" aria-hidden="true"></span>
+          <span class="dot dot--green" aria-hidden="true"></span>
+          <span class="loader__title">memory_core // boot</span>
+        </header>
+        <div class="loader__body">
+          <p class="loader__line"><span class="loader__cmd">init renderer</span> <span class="loader__ok">OK</span></p>
+          <p class="loader__line"><span class="loader__cmd">mount audio bus</span> <span class="loader__ok">OK</span></p>
+          <p class="loader__line"><span class="loader__cmd">attach scroll director</span> <span class="loader__ok">OK</span></p>
+          <p class="loader__line"><span class="loader__cmd">stream <span id="loader-label">initializing</span></span><span class="cyber-cursor"></span></p>
+          <div class="loader__bar"><div class="loader__fill" id="loader-fill"></div></div>
+        </div>
+      </div>
     </div>
+
+    <!-- HUD overlay (chrome above canvas, below scanlines) -->
     <main id="ui" aria-hidden="false">
       <header class="hud hud--tl">
-        <span class="hud__dot"></span>
-        <span class="hud__label">memory_core</span>
-        <span class="hud__sub">offline · last sync —</span>
+        <div class="hud__row">
+          <span class="hud__dot" aria-hidden="true"></span>
+          <span class="hud__label">memory_core</span>
+        </div>
+        <div class="hud__row hud__row--sub">
+          <span class="hud__sub">status: offline · last sync —</span>
+        </div>
       </header>
+
       <header class="hud hud--tr">
-        <span class="hud__label">sector</span>
-        <span class="hud__sub" id="sector-name">entry</span>
+        <div class="hud__row">
+          <span class="hud__label">sector</span>
+          <span class="hud__sep">::</span>
+          <span class="hud__value" id="sector-name">entry</span>
+        </div>
+        <div class="hud__row hud__row--sub">
+          <span class="hud__sub">depth</span>
+          <span id="depth-readout" class="hud__sub hud__sub--value">00%</span>
+        </div>
       </header>
-      <div class="progress" aria-hidden="true">
-        <div class="progress__bar" id="progress-bar"></div>
-      </div>
+
       <section class="prompt" id="prompt">
-        <h1 id="prompt-title">inside an ai memory core</h1>
-        <p id="prompt-body">scroll to descend.</p>
-      </section>
-      <aside class="whisper" id="whisper" aria-live="polite"></aside>
-      <section class="outro" id="outro" aria-hidden="true">
-        <p class="outro__tag">partial recovery</p>
-        <h2 class="outro__line">what came back is not what left.</h2>
-        <p class="outro__sub">but it remembers you.</p>
-        <p class="outro__author">
-          made by
-          <a href="https://freddysaez.es" target="_blank" rel="noopener noreferrer">Freddy Saez</a>
+        <p class="prompt__tag">// transmission</p>
+        <h1
+          id="prompt-title"
+          class="prompt__title cyber-glitch"
+          data-text="inside an ai memory core"
+        >inside an ai memory core</h1>
+        <p class="prompt__body">
+          <span class="prompt__caret">&gt;</span>
+          <span id="prompt-body">scroll to descend.</span><span class="cyber-cursor" aria-hidden="true"></span>
         </p>
-        <p class="outro__by">harbour.space · webgl in practice · final</p>
-        <p class="outro__disclaimer">no AI was harmed in the making of this experience.</p>
       </section>
+
+      <aside class="whisper" id="whisper" aria-live="polite"></aside>
+
+      <section class="outro" id="outro" aria-hidden="true">
+        <header class="outro__header">
+          <span class="dot dot--red" aria-hidden="true"></span>
+          <span class="dot dot--yellow" aria-hidden="true"></span>
+          <span class="dot dot--green" aria-hidden="true"></span>
+          <span class="outro__path">end_of_transmission</span>
+        </header>
+        <div class="outro__body">
+          <p class="outro__tag">// partial recovery</p>
+          <h2
+            class="outro__line cyber-glitch"
+            data-text="what came back is not what left."
+          >what came back is not what left.</h2>
+          <p class="outro__sub">&gt; but it remembers you.</p>
+
+          <hr class="outro__divider" />
+
+          <dl class="outro__meta">
+            <dt>author</dt>
+            <dd><a href="https://freddysaez.es" target="_blank" rel="noopener noreferrer">Freddy Saez</a></dd>
+            <dt>host</dt>
+            <dd>freddysaez.es</dd>
+            <dt>course</dt>
+            <dd>harbour.space // webgl in practice</dd>
+          </dl>
+
+          <p class="outro__disclaimer">no AI was harmed in the making of this experience.</p>
+        </div>
+      </section>
+
+      <div class="progress" aria-hidden="true">
+        <div class="progress__chrome">
+          <span class="progress__label">depth</span>
+          <div class="progress__track">
+            <div class="progress__bar" id="progress-bar"></div>
+          </div>
+          <span id="progress-readout" class="progress__readout">00%</span>
+        </div>
+      </div>
+
+      <button id="audio-toggle" class="audio-toggle" type="button" aria-pressed="false">
+        <span class="audio-toggle__dot" aria-hidden="true"></span>
+        <span class="audio-toggle__label">audio</span>
+      </button>
     </main>
-    <button id="audio-toggle" class="audio-toggle" type="button" aria-pressed="false">
-      <span class="audio-toggle__dot"></span>
-      <span class="audio-toggle__label">audio</span>
-    </button>
+
     <div id="scroll-spacer" aria-hidden="true"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

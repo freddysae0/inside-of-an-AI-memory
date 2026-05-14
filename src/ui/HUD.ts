@@ -57,7 +57,12 @@ export class HUD {
     this.promptEl.classList.add('is-hidden');
     if (this.fadeTimer !== null) window.clearTimeout(this.fadeTimer);
     this.fadeTimer = window.setTimeout(() => {
-      this.titleEl.textContent = copy.title.toLowerCase();
+      const title = copy.title.toLowerCase();
+      this.titleEl.textContent = title;
+      // The cyber-glitch effect needs data-text in sync with the
+      // visible text so the chromatic-aberration pseudo-elements
+      // re-paint the new sector's words.
+      this.titleEl.setAttribute('data-text', title);
       this.bodyEl.textContent = copy.body.toLowerCase();
       this.promptEl.classList.remove('is-hidden');
       this.fadeTimer = null;
