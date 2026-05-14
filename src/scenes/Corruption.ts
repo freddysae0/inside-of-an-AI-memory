@@ -3,6 +3,7 @@ import type { MemoryScene } from '../core/SceneManager';
 import type { FrameContext } from '../core/AnimationManager';
 import type { ScrollDirector } from '../core/ScrollDirector';
 import type { CorruptionEffect } from '../core/Corruption';
+import type { HUD } from '../ui/HUD';
 import { renderTextToCanvas } from '../utils/textCanvas';
 import { TextShardMaterial } from '../shaders/textShard/TextShardMaterial';
 
@@ -50,9 +51,27 @@ export class Corruption implements MemoryScene {
   private readonly shards: Shard[] = [];
   private readonly sectorIndex = 3;
 
+  // --- Voluntad state -------------------------------------------------
+  // Fires exactly once per session, when intensity first crosses 0.55.
+  // The AI briefly pulls itself together — intensity dips, shards drift
+  // inward, a single whisper crosses the HUD — then the failure
+  // resumes. Once-per-session is intentional: a second voluntad would
+  // feel scripted instead of willed.
+  private voluntadHasFired = false;
+  private voluntadStart = -1;
+  private voluntadHasWhispered = false;
+  private static readonly VOLUNTAD_TRIGGER  = 0.55;
+  private static readonly VOLUNTAD_PULL_IN  = 1.0;  // seconds, dip phase
+  private static readonly VOLUNTAD_HOLD     = 1.0;  // held-calm phase
+  private static readonly VOLUNTAD_SNAPBACK = 1.0;  // ramp back to baseline
+  private static readonly VOLUNTAD_TOTAL = (
+    Corruption.VOLUNTAD_PULL_IN + Corruption.VOLUNTAD_HOLD + Corruption.VOLUNTAD_SNAPBACK
+  );
+
   constructor(
     private readonly scroll: ScrollDirector,
     private readonly corruption: CorruptionEffect,
+    private readonly hud: HUD,
   ) {
     this.scene.fog = new THREE.FogExp2(0x05060d, 0.20);
     this.camera.position.set(0, 0, 4.6);
@@ -106,13 +125,43 @@ export class Corruption implements MemoryScene {
   update(ctx: FrameContext): void {
     const local = this.scroll.sector === this.sectorIndex ? this.scroll.local : 0;
     // Easing curve: subtle first third, brutal last third.
-    const intensity = Math.pow(local, 1.6);
+    const baseIntensity = Math.pow(local, 1.6);
+
+    // Has the voluntad trigger condition been met?
+    if (!this.voluntadHasFired && baseIntensity > Corruption.VOLUNTAD_TRIGGER) {
+      this.voluntadHasFired = true;
+      this.voluntadStart = ctx.time;
+    }
+
+    // Compute a 'calm' factor 0..1: rises during pull-in, holds at 1,
+    // falls during snapback. Outside the voluntad window calm is 0 and
+    // the scene is fully under local-driven control.
+    let calm = 0;
+    if (this.voluntadStart > 0) {
+      const e = ctx.time - this.voluntadStart;
+      if (e < Corruption.VOLUNTAD_PULL_IN) {
+        calm = THREE.MathUtils.smoothstep(e, 0, Corruption.VOLUNTAD_PULL_IN);
+      } else if (e < Corruption.VOLUNTAD_PULL_IN + Corruption.VOLUNTAD_HOLD) {
+        calm = 1;
+        // Whisper fires exactly once, at the start of the held-calm phase.
+        if (!this.voluntadHasWhispered) {
+          this.voluntadHasWhispered = true;
+          this.hud.whisper('i am still here.', 1800);
+        }
+      } else if (e < Corruption.VOLUNTAD_TOTAL) {
+        const t = (e - Corruption.VOLUNTAD_PULL_IN - Corruption.VOLUNTAD_HOLD) / Corruption.VOLUNTAD_SNAPBACK;
+        calm = 1 - THREE.MathUtils.smoothstep(t, 0, 1);
+      }
+    }
+
+    // During voluntad the intensity and drift collapse toward 'calm'
+    // values (~0.10 intensity, ~0.86 drift) — the AI fighting to keep
+    // its shape against the local-driven failure.
+    const intensity  = THREE.MathUtils.lerp(baseIntensity, 0.10, calm);
+    const driftScale = THREE.MathUtils.lerp(1 + baseIntensity * 0.55, 0.86, calm);
 
     this.corruption.setIntensity(intensity);
     this.corruption.tick(ctx.time);
-
-    // Outward drift as corruption rises — decoherence visualised.
-    const driftScale = 1 + intensity * 0.55;
 
     for (const s of this.shards) {
       s.mesh.rotateOnAxis(s.tumbleAxis, s.tumbleSpeed * ctx.delta);
@@ -121,8 +170,7 @@ export class Corruption implements MemoryScene {
       s.material.uniforms.uIntensity.value = intensity;
     }
 
-    // Cluster yaws very slowly so the whole field has motion even when
-    // intensity is low and shards barely shift.
+    // Cluster yaws slowly so motion is present even at low intensity.
     this.cluster.rotation.y = ctx.time * 0.04;
   }
 

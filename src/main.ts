@@ -52,7 +52,7 @@ const loader = new AssetLoader();
 const getEntry = loader.add('entry sector',         () => new EntryRoom(input));
 const getDatasets = loader.add('datasets sector',   () => new Datasets(scroll));
 const getEmotions = loader.add('emotions sector',   () => new Emotions(scroll));
-const getCorruptionScene = loader.add('corruption sector', () => new Corruption(scroll, corruption));
+const getCorruptionScene = loader.add('corruption sector', () => new Corruption(scroll, corruption, hud));
 const getReconstruction = loader.add('reconstruction sector', () => new Reconstruction(scroll));
 
 loader.onProgress((p) => {

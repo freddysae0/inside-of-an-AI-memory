@@ -80,6 +80,22 @@ body { min-height: 100vh; }
   background: var(--accent); box-shadow: 0 0 8px var(--accent);
 }
 
+/* Whisper — used by the voluntad moment in CORRUPTION. A single line
+   that fades in/out fast. Distinct typographic register from .prompt:
+   larger, no tracking, almost-white — it reads as a *thought*, not a
+   label. */
+.whisper {
+  position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%) scale(0.98);
+  opacity: 0;
+  font-size: 14px; letter-spacing: 0.02em;
+  color: #f0f2f7;
+  text-shadow: 0 0 24px rgba(150, 180, 255, 0.45);
+  transition: opacity 520ms ease, transform 520ms ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.whisper.is-visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
 .outro {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   text-align: center; max-width: 38ch;

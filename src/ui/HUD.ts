@@ -17,10 +17,27 @@ export class HUD {
   private readonly titleEl = document.getElementById('prompt-title')!;
   private readonly bodyEl = document.getElementById('prompt-body')!;
   private readonly outroEl = document.getElementById('outro')!;
+  private readonly whisperEl = document.getElementById('whisper')!;
 
   private currentId: string | null = null;
   private fadeTimer: number | null = null;
+  private whisperTimer: number | null = null;
   private outroVisible = false;
+
+  /**
+   * Show a single line for a short duration — used by the voluntad
+   * moment so the AI's "i am still here." reads as a thought, not as
+   * sector copy.
+   */
+  whisper(text: string, durationMs = 1800): void {
+    this.whisperEl.textContent = text.toLowerCase();
+    this.whisperEl.classList.add('is-visible');
+    if (this.whisperTimer !== null) window.clearTimeout(this.whisperTimer);
+    this.whisperTimer = window.setTimeout(() => {
+      this.whisperEl.classList.remove('is-visible');
+      this.whisperTimer = null;
+    }, durationMs);
+  }
 
   /** Show the outro epigraph during the final stretch of the journey. */
   setOutro(visible: boolean): void {
