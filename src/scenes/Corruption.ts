@@ -9,17 +9,35 @@ import { renderTextToCanvas } from '../utils/textCanvas';
 import { TextShardMaterial } from '../shaders/textShard/TextShardMaterial';
 import { SHARD_PHRASES, GHOST_PHRASES } from './corruptionPhrases';
 
-const SHARD_COUNT = 10;
-const SHARD_SIZE  = new THREE.Vector2(0.78, 0.14); // 1200:220 canvas aspect
+const SHARD_COUNT = 32;                                   // up from 10
+const SHARD_SIZE  = new THREE.Vector2(0.78, 0.14);        // 1200:220 canvas aspect
 const TEXT_CANVAS = { width: 1200, height: 220, fontPx: 130 };
 
+// Depth gradient — shards distribute across a wide distance range so
+// close ones (big, bright) act as focal phrases the user reads, and
+// distant ones (small, dim) act as atmospheric residue. Sells 'vast
+// memory leaking', not 'ten shards in a tight ring'.
+const DISTANCE_MIN = 1.00;
+const DISTANCE_MAX = 2.55;
+const SCALE_AT_NEAR = 1.00;
+const SCALE_AT_FAR  = 0.55;
+const OPACITY_AT_NEAR = 1.00;
+const OPACITY_AT_FAR  = 0.42;
+
 // Per-shard swap rate — scales inversely with intensity so memory leaks
-// faster as the AI fails harder. At intensity=0 swaps are ~3–8s apart;
-// at intensity=1 they're ~0.5–1.5s apart.
-const SWAP_MIN_AT_REST = 3.0;
-const SWAP_MAX_AT_REST = 8.0;
-const SWAP_MIN_AT_FAIL = 0.5;
-const SWAP_MAX_AT_FAIL = 1.5;
+// faster as the AI fails harder. Tightened from 3–8s to 2–6s now that
+// the pool is 200 deep — more swaps surface more phrases.
+const SWAP_MIN_AT_REST = 2.0;
+const SWAP_MAX_AT_REST = 6.0;
+const SWAP_MIN_AT_FAIL = 0.4;
+const SWAP_MAX_AT_FAIL = 1.3;
+
+/** Deterministic per-index hash in [0, 1). Used to vary distance per
+ *  shard without bands (golden-angle alone bands distance with index). */
+function hash01(i: number): number {
+  const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
 
 // Ghost flash overlay — appears in front of camera at high intensity.
 const GHOST_PLANE_SIZE = new THREE.Vector2(1.85, 0.34);
@@ -127,10 +145,20 @@ export class Corruption implements MemoryScene {
       const radius = Math.sqrt(1 - y * y);
       const theta = golden * i;
       const homeDir = new THREE.Vector3(Math.cos(theta) * radius, y, Math.sin(theta) * radius);
-      const homeDistance = 1.05 + (i % 3) * 0.18;
+
+      // Per-shard distance via hash — uncorrelated with golden-angle
+      // index so depth varies smoothly through the cluster, not
+      // banded by index ordering.
+      const distanceT = hash01(i);
+      const homeDistance = DISTANCE_MIN + distanceT * (DISTANCE_MAX - DISTANCE_MIN);
+      const closeness = 1 - distanceT;  // 1 at min distance, 0 at max
+      const meshScale  = SCALE_AT_FAR   + closeness * (SCALE_AT_NEAR - SCALE_AT_FAR);
+      const opacityFac = OPACITY_AT_FAR + closeness * (OPACITY_AT_NEAR - OPACITY_AT_FAR);
+      material.uniforms.uOpacity.value = opacityFac;
 
       const mesh = new THREE.Mesh(planeGeo, material);
       mesh.position.copy(homeDir).multiplyScalar(homeDistance);
+      mesh.scale.setScalar(meshScale);
       mesh.lookAt(0, 0, 0);
       mesh.rotateZ((i * 0.78) % (Math.PI * 2));
 

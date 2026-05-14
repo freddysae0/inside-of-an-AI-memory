@@ -17,12 +17,18 @@ varying vec3 vWorldNormal;
 varying vec3 vViewDir;
 
 void main() {
-  vec4 t = texture2D(uText, vUv);
+  // Back-face mirror fix. DoubleSide rendering shows both sides of the
+  // plane, but the back side's UV.x is implicitly flipped — text on the
+  // back of an orbiting shard would read mirrored. Flipping UV.x when
+  // !gl_FrontFacing makes the back render the same letterforms as the
+  // front, so every shard reads correctly regardless of orbit position.
+  vec2 uv = gl_FrontFacing ? vUv : vec2(1.0 - vUv.x, vUv.y);
+  vec4 t = texture2D(uText, uv);
   if (t.a < 0.02) discard;
 
   // Per-pixel dissolve mask. Scale 4 keeps chunks letter-sized, not pixel-sized.
   // Time-evolved so the same letters don't fail in the same places frame after frame.
-  float n = snoise(vec3(vUv * 4.0, uTime * 0.45)) * 0.5 + 0.5;
+  float n = snoise(vec3(uv * 4.0, uTime * 0.45)) * 0.5 + 0.5;
   float threshold = uIntensity * 0.95;
   float alive = smoothstep(threshold, threshold + 0.06, n);
 
