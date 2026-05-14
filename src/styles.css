@@ -59,19 +59,14 @@ body {
 #scroll-spacer { height: 600vh; width: 1px; pointer-events: none; }
 #stage  { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 0; }
 
-/* #ui is a fixed overlay so its absolute-positioned children (.hud,
-   .prompt, .progress, .outro, .whisper) anchor to the *viewport*,
-   not to the 600vh document. Without this the HUD would scroll up
-   and out of view as the user descends through the journey.
-   pointer-events: none lets the canvas receive pointer/scroll;
-   interactive children (.audio-toggle, .outro__meta a) re-enable
-   pointer-events on themselves. */
-#ui {
-  position: fixed;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-}
+/* #ui used to be a position: fixed wrapper but that created an
+   isolated stacking context — mix-blend-mode on any descendant could
+   only blend against #ui's empty interior, not against the canvas.
+   display: contents removes #ui's box entirely so its children
+   render directly into body's stacking context, where they can
+   blend against the canvas + overlays below. Each child handles its
+   own viewport-anchored position: fixed. */
+#ui { display: contents; }
 
 /* --------------------------------------------------------------------------
    3. GLOBAL OVERLAYS (CRT signal texture)
@@ -225,7 +220,8 @@ body {
    5. HUD CORNERS (top-left status, top-right sector readout)
    -------------------------------------------------------------------------- */
 .hud {
-  position: absolute;
+  position: fixed;
+  z-index: 3;
   /* 0.72 opacity makes the panel solid enough that muted text inside
      reads against the panel itself, not against whatever WebGL hue
      happens to be behind it. */
@@ -272,13 +268,24 @@ body {
    6. PROMPT (centred transmission)
    -------------------------------------------------------------------------- */
 .prompt {
-  position: absolute; left: 50%; bottom: 13vh;
+  position: fixed;
+  left: 50%; bottom: 13vh;
   transform: translateX(-50%);
+  z-index: 3;
   text-align: center;
   max-width: 50ch;
   pointer-events: none;
   transition: opacity 600ms ease;
   padding: 0 1rem;
+  /* The prompt floats directly over the WebGL canvas with no panel
+     behind it. Difference blend inverts every pixel against whatever
+     is underneath, so the whole transmission stays readable through
+     every sector palette — including the bright joy/fire phase that
+     was previously washing out the cream body text. The glitch title
+     keeps its chromatic-aberration shadow stack and just gets
+     additionally shifted by the diff (often *more* cyberpunk-feeling,
+     not less). */
+  mix-blend-mode: difference;
 }
 .prompt.is-hidden { opacity: 0; }
 
@@ -289,11 +296,6 @@ body {
   letter-spacing: 0.55em;
   text-transform: uppercase;
   color: var(--accent-2);
-  /* The prompt floats directly over the WebGL canvas with no panel.
-     mix-blend-mode: difference inverts these pixels against whatever
-     is behind, so the tag stays high-contrast regardless of the
-     current sector's hue. */
-  mix-blend-mode: difference;
 }
 
 .prompt__title {
@@ -313,17 +315,15 @@ body {
   font-family: var(--font-body);
   font-size: 12.5px;
   letter-spacing: 0.18em;
-  /* Was --muted-fg #6b7280, which got swallowed by bright WebGL hues
-     (joy fire, wonder cyan). Cream + difference blend always inverts
-     to a readable contrast: light on dark stays light, light on
-     light goes dark. */
+  /* Cream so the parent's difference blend produces good contrast
+     in both directions: light on dark stays light, light on light
+     goes dark. */
   color: #e8e2d4;
   text-transform: lowercase;
   display: inline-flex;
   align-items: baseline;
   gap: 0.55rem;
   flex-wrap: nowrap;
-  mix-blend-mode: difference;
 }
 .prompt__caret { color: var(--accent); }
 .prompt__body .cyber-cursor { background: var(--accent); color: var(--accent); }
@@ -332,9 +332,10 @@ body {
    7. WHISPER — voluntad moment
    -------------------------------------------------------------------------- */
 .whisper {
-  position: absolute;
+  position: fixed;
   left: 50%; top: 44%;
   transform: translate(-50%, -50%) scale(0.96);
+  z-index: 3;
   opacity: 0;
   font-family: var(--font-display);
   font-weight: 700;
@@ -346,8 +347,9 @@ body {
     -2px 0 rgba(255, 0, 255, 0.85),
      2px 0 rgba(0, 212, 255, 0.85),
      0 0 18px rgba(0, 255, 136, 0.40);
-  /* Voluntad fires during CORRUPTION which has very busy backgrounds.
-     Difference keeps the whisper readable against shards + glitches. */
+  /* Difference blend against the canvas. Voluntad fires during
+     CORRUPTION which has very busy backgrounds — diff keeps the
+     whisper readable against shards + glitches. */
   mix-blend-mode: difference;
   transition: opacity 520ms ease, transform 520ms ease;
   pointer-events: none;
@@ -362,7 +364,8 @@ body {
    8. PROGRESS BAR (bottom chrome — depth readout)
    -------------------------------------------------------------------------- */
 .progress {
-  position: absolute; left: 1.5rem; right: 1.5rem; bottom: 1.5rem;
+  position: fixed; left: 1.5rem; right: 1.5rem; bottom: 1.5rem;
+  z-index: 3;
   pointer-events: none;
 }
 .progress__chrome {
@@ -535,9 +538,10 @@ body {
    11. OUTRO — end_of_transmission terminal card
    -------------------------------------------------------------------------- */
 .outro {
-  position: absolute;
+  position: fixed;
   left: 50%; top: 50%;
   transform: translate(-50%, -50%);
+  z-index: 3;
   width: min(560px, calc(100% - 3rem));
   background: rgba(18, 18, 26, 0.92);
   border: 1px solid var(--border);
