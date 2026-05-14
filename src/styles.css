@@ -103,10 +103,31 @@ body { min-height: 100vh; }
   pointer-events: none;
 }
 .outro.is-visible { opacity: 1; }
-.outro__tag  { margin: 0 0 1.25rem; color: var(--muted); font-size: 10px; letter-spacing: 0.5em; }
-.outro__line { margin: 0 0 0.5rem; font-size: 15px; font-weight: 500; letter-spacing: 0.18em; line-height: 1.45; }
-.outro__sub  { margin: 0 0 1.5rem; color: #aab1bf; font-size: 12px; letter-spacing: 0.20em; }
-.outro__by   { margin: 0; color: var(--muted); font-size: 10px; letter-spacing: 0.32em; }
+.outro__tag    { margin: 0 0 1.25rem; color: var(--muted); font-size: 10px; letter-spacing: 0.5em; }
+.outro__line   { margin: 0 0 0.5rem;  font-size: 15px; font-weight: 500; letter-spacing: 0.18em; line-height: 1.45; }
+.outro__sub    { margin: 0 0 2.25rem; color: #aab1bf; font-size: 12px; letter-spacing: 0.20em; }
+.outro__author { margin: 0 0 0.55rem; color: var(--fg); font-size: 11px; letter-spacing: 0.28em; }
+.outro__by     { margin: 0 0 1.35rem; color: var(--muted); font-size: 10px; letter-spacing: 0.32em; }
+.outro__disclaimer {
+  margin: 0; color: var(--muted);
+  font-size: 9px; letter-spacing: 0.22em; font-style: italic;
+  opacity: 0.55;
+}
+
+/* The only interactive element in the outro — link gets pointer events
+   back, everything else stays decorative. Subtle underline on hover. */
+.outro__author a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  padding-bottom: 1px;
+  pointer-events: auto;
+  transition: color 220ms ease, border-color 220ms ease;
+}
+.outro__author a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
 
 .progress {
   position: absolute; left: 1.5rem; right: 1.5rem; bottom: 1.25rem; height: 1px;
