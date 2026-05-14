@@ -8,6 +8,7 @@
 uniform sampler2D uText;
 uniform float uTime;
 uniform float uIntensity;     // 0..1, shared with the global corruption pass
+uniform float uOpacity;       // global multiplier — used by the ghost flash
 uniform vec3  uColor;
 uniform vec3  uRimColor;
 
@@ -32,7 +33,7 @@ void main() {
   vec3 hotEdge = uRimColor * pow(front, 6.0) * 1.4;
 
   vec3 col = uColor + hotEdge;
-  float a = t.a * alive;
+  float a = t.a * alive * uOpacity;
 
   gl_FragColor = vec4(col, a);
 }
