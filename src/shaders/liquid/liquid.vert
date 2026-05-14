@@ -3,7 +3,9 @@
 uniform float uTime;
 uniform float uAmplitude;
 uniform float uFrequency;
-uniform float uEmotion;   // 0 sad, 0.5 joy, 1 wonder
+uniform float uEmotion;     // 0 sad, 0.5 joy, 1 wonder
+uniform float uWetness;     // water look weight (sad)
+uniform float uHeat;        // fire look weight (joy)
 
 varying vec3 vWorldNormal;
 varying vec3 vViewDir;
@@ -80,6 +82,26 @@ void main() {
   float wonderW = smoothstep(0.55, 0.95, uEmotion);
   float wonderBulge = sin(uTime * 0.4) * 0.5 + 0.5;
   displacement += wonderBulge * 0.10 * wonderW;
+
+  // --- Water ripples (sad) ---
+  // High-frequency ripples on the surface so the silhouette reads as
+  // restless water, not just blue gel. Small amplitude so the blob
+  // shape stays recognisable.
+  if (uWetness > 0.001) {
+    float waterRipple = snoise(pos * 12.0 + vec3(0.0, uTime * 0.45, 0.0)) * 0.5
+                      + snoise(pos * 22.0 + vec3(uTime * 0.30, 0.0, 0.0)) * 0.25;
+    displacement += waterRipple * 0.045 * uWetness;
+  }
+
+  // --- Fire turbulence (joy) ---
+  // Strong upward-flowing displacement so the silhouette licks like
+  // flame. Same noise direction as the fire fragment so vertex
+  // displacement and surface colour ride the same field.
+  if (uHeat > 0.001) {
+    vec3 firePos = pos * 2.2 + vec3(0.0, -uTime * 1.9, 0.0);
+    float fireN = snoise(firePos) + snoise(firePos * 2.1) * 0.5;
+    displacement += fireN * 0.16 * uHeat;
+  }
 
   pos += normal * displacement;
 

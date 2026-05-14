@@ -89,6 +89,13 @@ export class Emotions implements MemoryScene {
     this.orbs.weight  = joyW;
     this.halo.weight  = wonderW;
 
+    // Same weights drive the blob's substance-look shaders so the
+    // surface, the silhouette, and the surrounding subsystems all
+    // speak the same language at any moment.
+    u.uWetness.value = sadW;
+    u.uHeat.value    = joyW;
+    u.uGlow.value    = wonderW;
+
     this.tears.update(ctx);
     this.orbs.update(ctx);
     this.halo.update(ctx);

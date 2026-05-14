@@ -13,6 +13,9 @@ export interface LiquidUniforms {
   uWonder: { value: THREE.Color };
   uRimPower: { value: number };
   uRimIntensity: { value: number };
+  uWetness: { value: number };
+  uHeat: { value: number };
+  uGlow: { value: number };
 }
 
 export class LiquidMaterial extends THREE.ShaderMaterial {
@@ -31,6 +34,9 @@ export class LiquidMaterial extends THREE.ShaderMaterial {
         uWonder: { value: new THREE.Color('#7af3d0') },
         uRimPower: { value: 2.2 },
         uRimIntensity: { value: 1.5 },
+        uWetness: { value: 0 },
+        uHeat:    { value: 0 },
+        uGlow:    { value: 0 },
       },
     });
   }
