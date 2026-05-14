@@ -226,7 +226,10 @@ body {
    -------------------------------------------------------------------------- */
 .hud {
   position: absolute;
-  background: rgba(18, 18, 26, 0.55);
+  /* 0.72 opacity makes the panel solid enough that muted text inside
+     reads against the panel itself, not against whatever WebGL hue
+     happens to be behind it. */
+  background: rgba(18, 18, 26, 0.72);
   border: 1px solid var(--border);
   padding: 0.55rem 0.95rem;
   font-family: var(--font-label);
@@ -286,7 +289,11 @@ body {
   letter-spacing: 0.55em;
   text-transform: uppercase;
   color: var(--accent-2);
-  text-shadow: 0 0 8px rgba(255, 0, 255, 0.35);
+  /* The prompt floats directly over the WebGL canvas with no panel.
+     mix-blend-mode: difference inverts these pixels against whatever
+     is behind, so the tag stays high-contrast regardless of the
+     current sector's hue. */
+  mix-blend-mode: difference;
 }
 
 .prompt__title {
@@ -306,12 +313,17 @@ body {
   font-family: var(--font-body);
   font-size: 12.5px;
   letter-spacing: 0.18em;
-  color: var(--muted-fg);
+  /* Was --muted-fg #6b7280, which got swallowed by bright WebGL hues
+     (joy fire, wonder cyan). Cream + difference blend always inverts
+     to a readable contrast: light on dark stays light, light on
+     light goes dark. */
+  color: #e8e2d4;
   text-transform: lowercase;
   display: inline-flex;
   align-items: baseline;
   gap: 0.55rem;
   flex-wrap: nowrap;
+  mix-blend-mode: difference;
 }
 .prompt__caret { color: var(--accent); }
 .prompt__body .cyber-cursor { background: var(--accent); color: var(--accent); }
@@ -334,6 +346,9 @@ body {
     -2px 0 rgba(255, 0, 255, 0.85),
      2px 0 rgba(0, 212, 255, 0.85),
      0 0 18px rgba(0, 255, 136, 0.40);
+  /* Voluntad fires during CORRUPTION which has very busy backgrounds.
+     Difference keeps the whisper readable against shards + glitches. */
+  mix-blend-mode: difference;
   transition: opacity 520ms ease, transform 520ms ease;
   pointer-events: none;
   white-space: nowrap;
@@ -353,7 +368,7 @@ body {
 .progress__chrome {
   display: flex; align-items: center; gap: 0.85rem;
   padding: 0.45rem 0.95rem;
-  background: rgba(18, 18, 26, 0.55);
+  background: rgba(18, 18, 26, 0.72);
   border: 1px solid var(--border);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -398,7 +413,7 @@ body {
   position: fixed; left: 1.5rem; top: 50%;
   transform: translateY(-50%);
   z-index: 5;
-  background: rgba(18, 18, 26, 0.55);
+  background: rgba(18, 18, 26, 0.72);
   border: 1px solid var(--border);
   padding: 0.55rem 0.85rem 0.55rem 0.65rem;
   display: inline-flex; align-items: center; gap: 0.55rem;
