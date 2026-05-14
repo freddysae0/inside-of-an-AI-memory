@@ -66,10 +66,13 @@ export class Reconstruction implements MemoryScene {
     // Whiter, calmer palette than DATASETS — signals 'coming home'.
     this.material.uniforms.uColorA.value.set('#cfe1ff');
     this.material.uniforms.uColorB.value.set('#fff0f2');
-    this.material.uniforms.uSize.value = 1.7;
-    // 25% of particles never find the surface — they keep drifting,
-    // desaturated, around the diminished sphere. The shader handles
-    // both the lost-particle position behaviour and the colour shift.
+    // uSize 1.7 was too large — 80-px dots with bloom on 70k particles
+    // saturated the field and made the scene feel always-active. 1.1
+    // is dense enough to read as a sphere without dominating bloom.
+    this.material.uniforms.uSize.value = 1.1;
+    // 25% of particles never find the surface — they drift, desaturated,
+    // around the diminished sphere. Drift slows to a halt as the
+    // silhouette settles (see uForm-gated settledLostSpeed in dust.vert).
     this.material.uniforms.uLostThreshold.value = 0.75;
     this.points = new THREE.Points(geom, this.material);
     this.points.frustumCulled = false;
@@ -80,11 +83,18 @@ export class Reconstruction implements MemoryScene {
   exit(): void {}
 
   update(ctx: FrameContext): void {
-    this.points.rotation.y = ctx.time * 0.05;
     this.material.uniforms.uTime.value = ctx.time;
 
-    // Local progress monotonically ramps form 0 → 1; particles lock in.
     const local = this.scroll.sector === this.sectorIndex ? this.scroll.local : 0;
+
+    // Rotation tied to scroll progress, NOT to ctx.time. The cluster
+    // rotates from 0 to 0.4 rad as the user descends and *holds still*
+    // at the bottom. Time-driven rotation was the main reason the
+    // sector read as 'particles arriving forever' — new lost motes
+    // kept rotating into view even when the user wasn't moving.
+    this.points.rotation.y = local * 0.4;
+
+    // Local progress monotonically ramps form 0 → 1; particles lock in.
     const form = THREE.MathUtils.smoothstep(local, 0.0, 0.85);
     this.material.uniforms.uForm.value = form;
   }
