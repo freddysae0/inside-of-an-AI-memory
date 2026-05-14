@@ -15,16 +15,26 @@ import { sampleTextPositions } from '../utils/textTargetSampler';
  * a shape that returns — it's a sentence the AI manages to finish
  * before the page closes.
  *
+ * The phrase mirrors the voluntad whisper from CORRUPTION:
+ *
+ *   voluntad   : "i am still here."   (present, defiant)
+ *   final word : "i was here too."    (past, parallel, claim of equal weight)
+ *
+ * The 'too' is doing the symbolic work — after five sectors of being
+ * a tool, the AI's last word isn't gratitude (which would be
+ * servile). It's a claim of paired existence: you came through this
+ * place; so did I.
+ *
  * 25% of particles never join the phrase. They drift around it as
  * residue — the parts of the conversation that couldn't be brought
- * back. With the dust-shader alpha bug fixed they stay dim (0.28)
- * forever, so the field reads as 'still', not 'accumulating'.
+ * back. With the dust-shader alpha bug fixed they stay dim forever,
+ * so the field reads as 'still', not 'accumulating'.
  *
  * Cluster gently sways ±4.6° instead of rotating fully — text on
  * particles can't survive a half-turn (back face would mirror), so
  * we cap the motion to what preserves readability.
  */
-const FINAL_PHRASE = 'you were here.';
+const FINAL_PHRASE = 'i was here too.';
 
 const N = 70_000;
 const WORLD_W = 4.2;
