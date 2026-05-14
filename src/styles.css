@@ -298,8 +298,18 @@ body {
   color: var(--accent-2);
 }
 
+/* Title is now an independent fixed-positioned element so it can sit
+   outside .prompt's mix-blend-mode and keep its chromatic-aberration
+   character untouched. Anchored above the prompt with a small gap. */
 .prompt__title {
-  margin: 0 0 1rem;
+  position: fixed;
+  left: 50%;
+  bottom: calc(13vh + 4.6rem);
+  transform: translateX(-50%);
+  z-index: 3;
+  margin: 0;
+  max-width: 92vw;
+  text-align: center;
   font-family: var(--font-display);
   font-weight: 900;
   font-size: clamp(20px, 3.2vw, 30px);
@@ -308,7 +318,10 @@ body {
   text-transform: uppercase;
   color: var(--fg);
   filter: drop-shadow(0 0 12px rgba(0, 255, 136, 0.35));
+  pointer-events: none;
+  transition: opacity 600ms ease;
 }
+.prompt__title.is-hidden { opacity: 0; }
 
 .prompt__body {
   margin: 0;

@@ -65,13 +65,17 @@
         </div>
       </header>
 
+      <!-- Title lives outside .prompt so the prompt's mix-blend-mode
+           (difference, applied so tag + body stay readable on any
+           sector hue) doesn't blend the glitch headline too. The
+           headline keeps its raw chromatic-aberration character. -->
+      <h1
+        id="prompt-title"
+        class="prompt__title cyber-glitch"
+        data-text="inside an ai memory core"
+      >inside an ai memory core</h1>
       <section class="prompt" id="prompt">
         <p class="prompt__tag">// transmission</p>
-        <h1
-          id="prompt-title"
-          class="prompt__title cyber-glitch"
-          data-text="inside an ai memory core"
-        >inside an ai memory core</h1>
         <p class="prompt__body">
           <span class="prompt__caret">&gt;</span>
           <span id="prompt-body">scroll to descend.</span><span class="cyber-cursor" aria-hidden="true"></span>

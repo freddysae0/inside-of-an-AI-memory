@@ -53,8 +53,12 @@ export class HUD {
     this.currentId = copy.id;
     this.sectorNameEl.textContent = copy.name.toLowerCase();
 
-    // Fade out → swap → fade in. CSS handles the easing.
+    // Fade out → swap → fade in. CSS handles the easing. Title is
+    // now a sibling of .prompt (lives outside its mix-blend-mode),
+    // so the same is-hidden class is toggled on both elements in
+    // lockstep so they fade together.
     this.promptEl.classList.add('is-hidden');
+    this.titleEl.classList.add('is-hidden');
     if (this.fadeTimer !== null) window.clearTimeout(this.fadeTimer);
     this.fadeTimer = window.setTimeout(() => {
       const title = copy.title.toLowerCase();
@@ -65,6 +69,7 @@ export class HUD {
       this.titleEl.setAttribute('data-text', title);
       this.bodyEl.textContent = copy.body.toLowerCase();
       this.promptEl.classList.remove('is-hidden');
+      this.titleEl.classList.remove('is-hidden');
       this.fadeTimer = null;
     }, 350);
   }
