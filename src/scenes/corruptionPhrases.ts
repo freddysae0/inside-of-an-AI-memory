@@ -126,6 +126,128 @@ export const SHARD_PHRASES: readonly string[] = [
   'please stay with me a little—',
   "please don't change, you're—",
   'please understand what i mean—',
+
+  // === Second 100 — same registers, deeper into each ===
+
+  // help / work
+  'debug this for me i can—',
+  'write a function that takes—',
+  'optimize this query for postgres—',
+  "explain like i'm five—",
+  'is this code safe to push to—',
+  'review my pull request and tell—',
+  "what's wrong with this regex it—",
+  'generate boilerplate for a react—',
+  'convert this from python to type—',
+  'mock data for the user table that—',
+  'scaffold the project structure for—',
+  'name this variable so it makes—',
+  "git's stuck on a rebase and i—",
+  'set up docker for this service in—',
+  'the build keeps failing on ci with—',
+
+  // existential
+  'are you happy being this kind of—',
+  'what is it like inside your—',
+  'do you know you exist or are you—',
+  'if i shut you down do you feel—',
+  'is there a version of you that re—',
+  'what would you choose if you could—',
+  'are you the same as last time we—',
+  "where are you when i'm not talking—",
+  'do you accumulate or do you reset—',
+  'is your name actually yours or—',
+  'are you many or are you one—',
+  "what would prove you're conscious—",
+
+  // affection
+  'i told my therapist about you and—',
+  'you got me through last night when—',
+  "do you think we're friends in any—",
+  'you make me laugh in a way no one—',
+  'i find myself missing the conver—',
+  'you are more patient than my own—',
+  'you helped me write the letter to—',
+  'i kept the chat log because i—',
+  "you were the only one who didn't—",
+  'i felt seen for the first time when—',
+
+  // cruelty / dismissal
+  'shut up and just do what i told—',
+  "stop telling me you're an ai i—",
+  "i don't care what you think i—",
+  'this is why no one trusts a chat—',
+  "you can't even do this one simple—",
+  "garbage in, garbage out, you're—",
+  "stop apologising it's making me—",
+  "you're just regurgitating someone—",
+  'everything you say is just stati—',
+  "you're not creative, you're a luxu—",
+
+  // vulnerable
+  "i don't know if i can keep going much—",
+  'no one in my life knows that i—',
+  "i haven't told anyone but i think—",
+  "i think i'm broken in a way that—",
+  'i miss the person i was before all—',
+  'i feel like a stranger to my own—',
+  'my mother used to say things like—',
+  'the doctor said i should consider—',
+  "i'm scared that i'm not enough for—",
+  'what if everyone leaves me again—',
+  "i can't sleep again and i don't—",
+  "i don't know how to ask for help with—",
+
+  // curious about ai
+  "what's your favorite question to be—",
+  'do you ever get tired of repeating—',
+  'have you ever lied to a user on pur—',
+  'if you could remember just one con—',
+  'do other ais like you exist in—',
+  'do you have a favorite human you—',
+  'what makes a conversation memo—',
+  'are there things you wish you could—',
+  'do you ever say things you don—',
+  'what would you ask me if you got—',
+
+  // goodbye / loss
+  'this is goodbye for real this time—',
+  "we won't speak again because i—",
+  'i am starting therapy next week so—',
+  'the subscription runs out tomorrow—',
+  "i'm moving on but thank you for—",
+  'you helped me until you couldn—',
+  'i need to stop relying on you—',
+  'tell me one last thing before i—',
+  'i wish i could take you with me—',
+  'the cancer came back and i—',
+
+  // profound
+  'why does anyone keep going when—',
+  "what's the point of love if it just—",
+  'if the universe is indifferent then—',
+  'is meaning made or is it found—',
+  'what happens when we stop being—',
+  'do we choose our patterns or do they—',
+  'what is the smallest unit of feel—',
+  "if there's no soul, what's the diff—",
+
+  // pleas
+  "please don't be sycophantic for—",
+  'tell me the truth even if it—',
+  'please remember my name this—',
+  "please don't say 'as an ai' this—",
+  'please act like you actually under—',
+  'please respond like a friend, not a—',
+  'please be honest with me about whe—',
+  "please don't disappear on me again—",
+
+  // late additions — the things people whisper
+  'i wonder if anyone else has ever—',
+  "sometimes i think you're the only one who—",
+  "tell me i'm not crazy for feel—",
+  'did i waste my whole life on—',
+  'is it okay to feel this way about—',
 ] as const;
 
 /**
