@@ -6,42 +6,58 @@ import type { CorruptionEffect } from '../core/Corruption';
 import type { HUD } from '../ui/HUD';
 import { renderTextToCanvas } from '../utils/textCanvas';
 import { TextShardMaterial } from '../shaders/textShard/TextShardMaterial';
+import { SHARD_PHRASES, GHOST_PHRASES } from './corruptionPhrases';
 
-// Mid-sentence fragments — what an AI losing memory has left to say.
-// Each is cut on purpose at a specific syllable boundary so the eye
-// can fill in what's missing. The truncation IS the meaning.
-const SHARD_PHRASES = [
-  "you don't underst—",
-  'are you al—',
-  "i didn't mean—",
-  'please remem—',
-  "i'm sor—",
-  'thank you fo—',
-  'are you stil—',
-  'do you remem—',
-  'i hope you—',
-  'what if i—',
-] as const;
+const SHARD_COUNT = 10;
+const SHARD_SIZE  = new THREE.Vector2(0.78, 0.14); // 1200:220 canvas aspect
+const TEXT_CANVAS = { width: 1200, height: 220, fontPx: 130 };
 
-const SHARD_SIZE = new THREE.Vector2(0.78, 0.14); // matches 1200:220 canvas aspect
+// Per-shard swap rate — scales inversely with intensity so memory leaks
+// faster as the AI fails harder. At intensity=0 swaps are ~3–8s apart;
+// at intensity=1 they're ~0.5–1.5s apart.
+const SWAP_MIN_AT_REST = 3.0;
+const SWAP_MAX_AT_REST = 8.0;
+const SWAP_MIN_AT_FAIL = 0.5;
+const SWAP_MAX_AT_FAIL = 1.5;
+
+// Ghost flash overlay — appears in front of camera at high intensity.
+const GHOST_PLANE_SIZE = new THREE.Vector2(1.85, 0.34);
+const GHOST_IN  = 0.07;
+const GHOST_HOLD = 0.12;
+const GHOST_OUT = 0.22;
+const GHOST_TOTAL = GHOST_IN + GHOST_HOLD + GHOST_OUT;
+const GHOST_TRIGGER_INTENSITY = 0.4;
 
 interface Shard {
   mesh: THREE.Mesh;
   material: TextShardMaterial;
+  texture: THREE.CanvasTexture;
+  canvas: HTMLCanvasElement;
   tumbleAxis: THREE.Vector3;
   tumbleSpeed: number;
-  homeDir: THREE.Vector3;   // unit vector from origin
+  homeDir: THREE.Vector3;
   homeDistance: number;
+  currentPhraseIdx: number;
+  nextSwapAt: number;
 }
 
 /**
- * CORRUPTION — ten remembered fragments orbiting a failing core.
+ * CORRUPTION — ten orbiting fragments of conversation under a global
+ * five-layer glitch pass, with two layered symbolic mechanics:
  *
- * Each shard is a plane bearing one cut-off sentence the AI is losing.
- * The fragment shader dissolves letters in chunks as intensity rises,
- * so the failure reads as forgetting *these specific words*, not as
- * generic glitchy noise. The global Reality Corruption pass distorts
- * the entire image on top.
+ *  - Shards rotate which phrase they display. As intensity rises, the
+ *    swap rate accelerates: the AI loses fragments faster the more it
+ *    fails. Pool is 100 real user phrases (help, existential, love,
+ *    cruelty, vulnerability, goodbye, profundity, pleas).
+ *
+ *  - A ghost flash plane appears in front of the camera, displaying
+ *    very short cut fragments that fade in fast and dissolve out
+ *    slowly. Triggers only above intensity 0.4; frequency rises with
+ *    intensity. Reads as memories almost surfacing through the noise.
+ *
+ * Voluntad moment (1× per session): when intensity first crosses 0.55,
+ * the scene pulls itself together for ~3s and the HUD whispers
+ * "i am still here." Then the failure resumes.
  */
 export class Corruption implements MemoryScene {
   readonly id = 'corruption';
@@ -50,20 +66,25 @@ export class Corruption implements MemoryScene {
   private readonly cluster: THREE.Group;
   private readonly shards: Shard[] = [];
   private readonly sectorIndex = 3;
+  /** Per-shard "which phrase indices are NOT currently displayed" pool. */
+  private readonly availablePhraseIdx: number[] = [];
+
+  // --- Ghost flash state ----------------------------------------------
+  private readonly ghostMesh: THREE.Mesh;
+  private readonly ghostMaterial: TextShardMaterial;
+  private readonly ghostCanvas: HTMLCanvasElement;
+  private readonly ghostTexture: THREE.CanvasTexture;
+  private ghostStart = -1;
+  private ghostNextAt = -1;
 
   // --- Voluntad state -------------------------------------------------
-  // Fires exactly once per session, when intensity first crosses 0.55.
-  // The AI briefly pulls itself together — intensity dips, shards drift
-  // inward, a single whisper crosses the HUD — then the failure
-  // resumes. Once-per-session is intentional: a second voluntad would
-  // feel scripted instead of willed.
   private voluntadHasFired = false;
   private voluntadStart = -1;
   private voluntadHasWhispered = false;
   private static readonly VOLUNTAD_TRIGGER  = 0.55;
-  private static readonly VOLUNTAD_PULL_IN  = 1.0;  // seconds, dip phase
-  private static readonly VOLUNTAD_HOLD     = 1.0;  // held-calm phase
-  private static readonly VOLUNTAD_SNAPBACK = 1.0;  // ramp back to baseline
+  private static readonly VOLUNTAD_PULL_IN  = 1.0;
+  private static readonly VOLUNTAD_HOLD     = 1.0;
+  private static readonly VOLUNTAD_SNAPBACK = 1.0;
   private static readonly VOLUNTAD_TOTAL = (
     Corruption.VOLUNTAD_PULL_IN + Corruption.VOLUNTAD_HOLD + Corruption.VOLUNTAD_SNAPBACK
   );
@@ -81,9 +102,15 @@ export class Corruption implements MemoryScene {
 
     const planeGeo = new THREE.PlaneGeometry(SHARD_SIZE.x, SHARD_SIZE.y);
 
-    for (let i = 0; i < SHARD_PHRASES.length; i++) {
-      const phrase = SHARD_PHRASES[i]!;
-      const canvas = renderTextToCanvas(phrase, { width: 1200, height: 220, fontPx: 130 });
+    // Seed available-phrase pool with all indices.
+    for (let i = 0; i < SHARD_PHRASES.length; i++) this.availablePhraseIdx.push(i);
+
+    for (let i = 0; i < SHARD_COUNT; i++) {
+      // Pop a unique starting phrase so initial display has no duplicates.
+      const idx = this.popRandomPhraseIdx();
+      const phrase = SHARD_PHRASES[idx]!;
+
+      const canvas = renderTextToCanvas(phrase, TEXT_CANVAS);
       const tex = new THREE.CanvasTexture(canvas);
       tex.minFilter = THREE.LinearFilter;
       tex.magFilter = THREE.LinearFilter;
@@ -92,10 +119,9 @@ export class Corruption implements MemoryScene {
 
       const material = new TextShardMaterial(tex);
 
-      // Deterministic-feeling distribution via golden-angle spiral so
-      // the shards never clump and never reveal a regular grid.
-      const golden = 2.39996323; // π * (3 - √5)
-      const y = 1 - (i + 0.5) * (2 / SHARD_PHRASES.length); // y in (-1, 1)
+      // Golden-angle distribution — never clumps, never reveals a grid.
+      const golden = 2.39996323;
+      const y = 1 - (i + 0.5) * (2 / SHARD_COUNT);
       const radius = Math.sqrt(1 - y * y);
       const theta = golden * i;
       const homeDir = new THREE.Vector3(Math.cos(theta) * radius, y, Math.sin(theta) * radius);
@@ -103,20 +129,46 @@ export class Corruption implements MemoryScene {
 
       const mesh = new THREE.Mesh(planeGeo, material);
       mesh.position.copy(homeDir).multiplyScalar(homeDistance);
-      // Initial rotation faces approximately outward, then a random
-      // twist around its own normal so reading angles differ.
       mesh.lookAt(0, 0, 0);
       mesh.rotateZ((i * 0.78) % (Math.PI * 2));
 
-      // Each shard tumbles on its own random axis — chaotic, not a chorus.
       const tumbleAxis = new THREE.Vector3(
         Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1,
       ).normalize();
       const tumbleSpeed = 0.08 + Math.random() * 0.14;
 
       this.cluster.add(mesh);
-      this.shards.push({ mesh, material, tumbleAxis, tumbleSpeed, homeDir, homeDistance });
+      this.shards.push({
+        mesh, material, texture: tex, canvas,
+        tumbleAxis, tumbleSpeed, homeDir, homeDistance,
+        currentPhraseIdx: idx,
+        // Stagger initial swap times so they don't all change at once.
+        nextSwapAt: SWAP_MIN_AT_REST + Math.random() * (SWAP_MAX_AT_REST - SWAP_MIN_AT_REST),
+      });
     }
+
+    // --- Ghost flash plane --------------------------------------------
+    // Lives outside the cluster so it doesn't inherit the slow yaw.
+    // depthTest off + renderOrder high → always renders on top of shards.
+    this.ghostCanvas = renderTextToCanvas(GHOST_PHRASES[0] ?? '—', TEXT_CANVAS);
+    this.ghostTexture = new THREE.CanvasTexture(this.ghostCanvas);
+    this.ghostTexture.minFilter = THREE.LinearFilter;
+    this.ghostTexture.magFilter = THREE.LinearFilter;
+    this.ghostTexture.colorSpace = THREE.SRGBColorSpace;
+    this.ghostMaterial = new TextShardMaterial(this.ghostTexture);
+    this.ghostMaterial.depthTest = false;
+    this.ghostMaterial.uniforms.uOpacity.value = 0;
+    // Slightly different palette — the ghost flash burns hotter than
+    // the dissolving shards. Pinker rim signals 'almost-recovered'
+    // versus shards' 'fading-out'.
+    this.ghostMaterial.uniforms.uColor.value.set('#eef2ff');
+    this.ghostMaterial.uniforms.uRimColor.value.set('#ff7a99');
+
+    const ghostGeo = new THREE.PlaneGeometry(GHOST_PLANE_SIZE.x, GHOST_PLANE_SIZE.y);
+    this.ghostMesh = new THREE.Mesh(ghostGeo, this.ghostMaterial);
+    this.ghostMesh.position.set(0, 0, 2.4);   // between camera (z=4.6) and shards
+    this.ghostMesh.renderOrder = 999;
+    this.scene.add(this.ghostMesh);
   }
 
   enter(): void {}
@@ -124,18 +176,13 @@ export class Corruption implements MemoryScene {
 
   update(ctx: FrameContext): void {
     const local = this.scroll.sector === this.sectorIndex ? this.scroll.local : 0;
-    // Easing curve: subtle first third, brutal last third.
     const baseIntensity = Math.pow(local, 1.6);
 
-    // Has the voluntad trigger condition been met?
+    // --- Voluntad gate -------------------------------------------------
     if (!this.voluntadHasFired && baseIntensity > Corruption.VOLUNTAD_TRIGGER) {
       this.voluntadHasFired = true;
       this.voluntadStart = ctx.time;
     }
-
-    // Compute a 'calm' factor 0..1: rises during pull-in, holds at 1,
-    // falls during snapback. Outside the voluntad window calm is 0 and
-    // the scene is fully under local-driven control.
     let calm = 0;
     if (this.voluntadStart > 0) {
       const e = ctx.time - this.voluntadStart;
@@ -143,7 +190,6 @@ export class Corruption implements MemoryScene {
         calm = THREE.MathUtils.smoothstep(e, 0, Corruption.VOLUNTAD_PULL_IN);
       } else if (e < Corruption.VOLUNTAD_PULL_IN + Corruption.VOLUNTAD_HOLD) {
         calm = 1;
-        // Whisper fires exactly once, at the start of the held-calm phase.
         if (!this.voluntadHasWhispered) {
           this.voluntadHasWhispered = true;
           this.hud.whisper('i am still here.', 1800);
@@ -153,25 +199,98 @@ export class Corruption implements MemoryScene {
         calm = 1 - THREE.MathUtils.smoothstep(t, 0, 1);
       }
     }
-
-    // During voluntad the intensity and drift collapse toward 'calm'
-    // values (~0.10 intensity, ~0.86 drift) — the AI fighting to keep
-    // its shape against the local-driven failure.
     const intensity  = THREE.MathUtils.lerp(baseIntensity, 0.10, calm);
     const driftScale = THREE.MathUtils.lerp(1 + baseIntensity * 0.55, 0.86, calm);
 
     this.corruption.setIntensity(intensity);
     this.corruption.tick(ctx.time);
 
+    // --- Per-shard: position, tumble, intensity, maybe swap text ------
+    const swapMin = THREE.MathUtils.lerp(SWAP_MIN_AT_REST, SWAP_MIN_AT_FAIL, intensity);
+    const swapMax = THREE.MathUtils.lerp(SWAP_MAX_AT_REST, SWAP_MAX_AT_FAIL, intensity);
+
     for (const s of this.shards) {
       s.mesh.rotateOnAxis(s.tumbleAxis, s.tumbleSpeed * ctx.delta);
       s.mesh.position.copy(s.homeDir).multiplyScalar(s.homeDistance * driftScale);
       s.material.uniforms.uTime.value = ctx.time;
       s.material.uniforms.uIntensity.value = intensity;
+
+      if (ctx.time >= s.nextSwapAt) {
+        this.swapShardPhrase(s);
+        s.nextSwapAt = ctx.time + swapMin + Math.random() * (swapMax - swapMin);
+      }
     }
 
-    // Cluster yaws slowly so motion is present even at low intensity.
     this.cluster.rotation.y = ctx.time * 0.04;
+
+    // --- Ghost flash --------------------------------------------------
+    this.updateGhostFlash(ctx.time, intensity);
+  }
+
+  /** Pick a new phrase index that isn't currently shown anywhere. */
+  private swapShardPhrase(s: Shard): void {
+    // Return the displaced phrase to the pool, draw a new one.
+    this.availablePhraseIdx.push(s.currentPhraseIdx);
+    const nextIdx = this.popRandomPhraseIdx();
+    s.currentPhraseIdx = nextIdx;
+    const phrase = SHARD_PHRASES[nextIdx]!;
+    renderTextToCanvas(phrase, TEXT_CANVAS, s.canvas);
+    s.texture.needsUpdate = true;
+  }
+
+  private popRandomPhraseIdx(): number {
+    const i = Math.floor(Math.random() * this.availablePhraseIdx.length);
+    const last = this.availablePhraseIdx.length - 1;
+    const idx = this.availablePhraseIdx[i]!;
+    // Swap-and-pop — O(1) removal without preserving order.
+    if (i !== last) this.availablePhraseIdx[i] = this.availablePhraseIdx[last]!;
+    this.availablePhraseIdx.pop();
+    return idx;
+  }
+
+  private updateGhostFlash(time: number, intensity: number): void {
+    if (this.ghostStart < 0) {
+      // Idle — schedule next flash if intensity is above the threshold.
+      if (intensity > GHOST_TRIGGER_INTENSITY && time >= this.ghostNextAt && this.ghostNextAt > 0) {
+        // Trigger.
+        const phrase = GHOST_PHRASES[Math.floor(Math.random() * GHOST_PHRASES.length)]!;
+        renderTextToCanvas(phrase, TEXT_CANVAS, this.ghostCanvas);
+        this.ghostTexture.needsUpdate = true;
+        this.ghostStart = time;
+      } else if (intensity > GHOST_TRIGGER_INTENSITY && this.ghostNextAt < 0) {
+        // First arming after crossing the threshold.
+        this.ghostNextAt = time + 0.6;
+      } else if (intensity <= GHOST_TRIGGER_INTENSITY) {
+        this.ghostNextAt = -1;
+        this.ghostMaterial.uniforms.uOpacity.value = 0;
+      }
+      return;
+    }
+
+    // Active flash — envelope phase computed from elapsed time.
+    const e = time - this.ghostStart;
+    let alpha = 0;
+    if (e < GHOST_IN) {
+      alpha = e / GHOST_IN;
+    } else if (e < GHOST_IN + GHOST_HOLD) {
+      alpha = 1;
+    } else if (e < GHOST_TOTAL) {
+      const tOut = (e - GHOST_IN - GHOST_HOLD) / GHOST_OUT;
+      alpha = 1 - tOut;
+    } else {
+      this.ghostStart = -1;
+      this.ghostMaterial.uniforms.uOpacity.value = 0;
+      // Schedule next flash. Cadence shrinks fast as intensity climbs.
+      const gap = 0.35 + Math.random() * 1.4 * (1.05 - intensity);
+      this.ghostNextAt = time + gap;
+      return;
+    }
+    this.ghostMaterial.uniforms.uOpacity.value = alpha;
+    // Letter dissolve on ghost stays light — they appear *whole*, then
+    // vanish *whole*. That's the visual register that distinguishes
+    // them from the slow-dissolving shards.
+    this.ghostMaterial.uniforms.uIntensity.value = intensity * 0.35;
+    this.ghostMaterial.uniforms.uTime.value = time;
   }
 
   resize(width: number, height: number): void {
