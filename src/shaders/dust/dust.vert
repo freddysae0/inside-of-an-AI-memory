@@ -70,16 +70,21 @@ void main() {
   // size so letters read as crisp text. Lost particles get a fixed
   // small size — they should not visually compete with the surviving
   // silhouette.
+  // Both sides of the form-mix below carry the isLost branch, so lost
+  // particles stay at their muted size at *every* uForm — they don't
+  // ramp brighter as the silhouette settles.
   float liveDriftSize = 0.45 + seedSize * 1.95;
   float driftSizeMult = mix(liveDriftSize, 0.55, isLost);
-  float formSizeMult  = 0.62;
+  float formSizeMult  = mix(0.62,          0.55, isLost);
   float sizeMult = mix(driftSizeMult, formSizeMult, uForm);
 
   // Wobble (breathing) per-particle freq in drift; fades to steady at
-  // form. Lost particles get no wobble — quiet, not pulsing.
+  // form. Lost particles get no wobble on either side so they never
+  // start breathing as uForm rises.
   float wobbleLive = 0.85 + 0.30 * sin(uTime * (1.0 + seedSpeed * 1.4) + aSeed * 6.28);
-  float wobbleBase = mix(wobbleLive, 0.90, isLost);
-  float wobble = mix(wobbleBase, 1.0, uForm);
+  float wobbleBase   = mix(wobbleLive, 0.90, isLost);
+  float wobbleSteady = mix(1.0,        0.90, isLost);
+  float wobble = mix(wobbleBase, wobbleSteady, uForm);
 
   gl_PointSize = uSize * wobble * sizeMult * (300.0 / -mv.z);
 

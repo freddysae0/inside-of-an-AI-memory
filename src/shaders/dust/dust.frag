@@ -17,24 +17,28 @@ void main() {
   float isLost = step(uLostThreshold, vSeed);
 
   // Per-particle edge softness — uncorrelated hash from size variety.
-  // Drift covers 0.04 (very soft halo) → 0.92 (crisp dot). Form=1
-  // collapses to a single value so every letter pixel reads identically.
-  // Lost particles collapse to a fixed soft edge so they don't sparkle
-  // — they're remnants, not living motes.
+  // Drift covers 0.04 (very soft halo) → 0.92 (crisp dot). At form=1
+  // non-lost dots collapse to a single crisp edge. Lost particles
+  // keep the soft 0.30 edge on BOTH sides of the mix so they stay
+  // soft regardless of uForm.
   float seedEdge  = hashSeed(vSeed * 23.0);
   float seedAlpha = hashSeed(vSeed * 37.0);
   float driftEdgeLive = 0.04 + seedEdge * 0.88;
   float driftEdge = mix(driftEdgeLive, 0.30, isLost);
-  float formEdge  = 0.55;
+  float formEdge  = mix(0.55,          0.30, isLost);
   float edgeIn = mix(driftEdge, formEdge, uForm);
   float alpha = smoothstep(1.0, edgeIn, r);
 
-  // Per-particle alpha bias in drift — some are bright, others faint.
-  // Uniform at form=1. Lost particles get a fixed *low* alpha so they
-  // never dominate the surviving silhouette they're meant to surround.
+  // Per-particle alpha bias. THIS was the bug behind 'particles
+  // appearing one after another until the screen turned white':
+  // formAlpha used to be 1.0 for *every* particle, so lost particles
+  // ramped from 0.28 (drift) to 1.0 (form) as uForm rose — each
+  // crossing its visibility threshold at its own seed-driven moment.
+  // Fix: lost particles use 0.28 on both sides of the mix and stay
+  // dim forever regardless of uForm.
   float driftAlphaLive = 0.35 + seedAlpha * 0.95;
   float driftAlpha = mix(driftAlphaLive, 0.28, isLost);
-  float formAlpha  = 1.0;
+  float formAlpha  = mix(1.0,            0.28, isLost);
   float alphaMult = mix(driftAlpha, formAlpha, uForm);
 
   // Two-tone palette — random pick per seed.
