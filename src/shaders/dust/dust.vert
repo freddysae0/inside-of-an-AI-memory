@@ -36,13 +36,12 @@ void main() {
   // Per-particle drift speed multiplier (0.4 → 2.0). Breaks the
   // synchronized motion that made the field feel like a single fluid;
   // some particles drift slowly, others fast — the volume reads as
-  // layered. LOST particles get a single slow speed that *settles to
-  // zero* as uForm approaches 1 — they freeze in place at the end of
-  // the journey instead of looping forever, which is what made the
-  // sector feel like 'more particles are arriving' over time.
+  // layered. LOST particles get a single slow speed (0.25) — visible
+  // gentle motion. The earlier 'white-out' bug wasn't motion, it was
+  // an alpha ramp; now that lost particles stay at fixed alpha 0.28
+  // forever, their drifting is calm to look at, not accumulative.
   float liveSpeed = 0.4 + seedSpeed * 1.6;
-  float settledLostSpeed = 0.25 * (1.0 - uForm);
-  float driftSpeed = mix(liveSpeed, settledLostSpeed, isLost);
+  float driftSpeed = mix(liveSpeed, 0.25, isLost);
 
   // Lost particles also drift over a shorter radius — they're scattered
   // close to where they were left, not roaming the whole volume.

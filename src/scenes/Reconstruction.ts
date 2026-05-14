@@ -87,12 +87,12 @@ export class Reconstruction implements MemoryScene {
 
     const local = this.scroll.sector === this.sectorIndex ? this.scroll.local : 0;
 
-    // Rotation tied to scroll progress, NOT to ctx.time. The cluster
-    // rotates from 0 to 0.4 rad as the user descends and *holds still*
-    // at the bottom. Time-driven rotation was the main reason the
-    // sector read as 'particles arriving forever' — new lost motes
-    // kept rotating into view even when the user wasn't moving.
-    this.points.rotation.y = local * 0.4;
+    // Gentle continuous spin so the partial sphere reads as 'alive,
+    // still being held' rather than 'frozen artefact'. Speed 0.035
+    // is slower than the earlier 0.05 — the silhouette is meant to
+    // settle, not parade. Plus a scroll-tied bias so descending feels
+    // like nudging it.
+    this.points.rotation.y = ctx.time * 0.035 + local * 0.2;
 
     // Local progress monotonically ramps form 0 → 1; particles lock in.
     const form = THREE.MathUtils.smoothstep(local, 0.0, 0.85);
