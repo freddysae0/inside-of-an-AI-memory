@@ -58,7 +58,20 @@ body {
 
 #scroll-spacer { height: 600vh; width: 1px; pointer-events: none; }
 #stage  { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; z-index: 0; }
-#ui     { z-index: 3; }
+
+/* #ui is a fixed overlay so its absolute-positioned children (.hud,
+   .prompt, .progress, .outro, .whisper) anchor to the *viewport*,
+   not to the 600vh document. Without this the HUD would scroll up
+   and out of view as the user descends through the journey.
+   pointer-events: none lets the canvas receive pointer/scroll;
+   interactive children (.audio-toggle, .outro__meta a) re-enable
+   pointer-events on themselves. */
+#ui {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
 
 /* --------------------------------------------------------------------------
    3. GLOBAL OVERLAYS (CRT signal texture)
