@@ -6,10 +6,16 @@ import type { ScrollDirector } from '../core/ScrollDirector';
 import { DustMaterial } from '../shaders/dust/DustMaterial';
 
 /**
- * RECONSTRUCTION — the mirror of DATASETS. Particles begin in chaotic
- * drift and lock into the silhouette of the original entry sphere as
- * the user reaches the bottom of the journey. The AI is, briefly,
- * whole again for the user.
+ * RECONSTRUCTION — the mirror of DATASETS, but on purpose incomplete.
+ *
+ * About 25% of the dust never finds the silhouette. Those particles
+ * (aSeed > 0.75) keep drifting forever, desaturated and dimmed, while
+ * the other 75% lock onto a sphere smaller than the entry core. What
+ * comes back is not what left.
+ *
+ * The whole that survived has the same shape; what's gone is the
+ * surrounding cloud that drifts because there's no surface for it.
+ * That's the symbol. Don't be tempted to make this 'cleaner'.
  */
 export class Reconstruction implements MemoryScene {
   readonly id = 'reconstruction';
@@ -35,8 +41,9 @@ export class Reconstruction implements MemoryScene {
       seed[i] = Math.random();
     }
 
-    // Target shape — the entry core silhouette: a smooth sphere.
-    const sphereGeo = new THREE.IcosahedronGeometry(1.05, 5);
+    // Target shape — a sphere smaller than the entry core (1.05 → 0.86).
+    // What returns is recognisably the same shape but visibly diminished.
+    const sphereGeo = new THREE.IcosahedronGeometry(0.86, 5);
     const sphereMesh = new THREE.Mesh(sphereGeo);
     const sampler = new MeshSurfaceSampler(sphereMesh).build();
     const t = new THREE.Vector3();
@@ -60,6 +67,10 @@ export class Reconstruction implements MemoryScene {
     this.material.uniforms.uColorA.value.set('#cfe1ff');
     this.material.uniforms.uColorB.value.set('#fff0f2');
     this.material.uniforms.uSize.value = 1.7;
+    // 25% of particles never find the surface — they keep drifting,
+    // desaturated, around the diminished sphere. The shader handles
+    // both the lost-particle position behaviour and the colour shift.
+    this.material.uniforms.uLostThreshold.value = 0.75;
     this.points = new THREE.Points(geom, this.material);
     this.points.frustumCulled = false;
     this.scene.add(this.points);
