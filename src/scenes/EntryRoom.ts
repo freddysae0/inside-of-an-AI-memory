@@ -17,6 +17,13 @@ export class EntryRoom implements MemoryScene {
   private readonly material: LivingMaterial;
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointerTarget = new THREE.Vector3(10, 10, 10);
+  // Workspaces for eye contact — recycled per frame so we don't allocate.
+  private readonly gazePlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+  private readonly gazeWorld = new THREE.Vector3();
+  private readonly lookMatrix = new THREE.Matrix4();
+  private readonly lookQuat = new THREE.Quaternion();
+  private readonly idleQuat = new THREE.Quaternion();
+  private readonly idleAxis = new THREE.Vector3(0, 1, 0);
 
   constructor(private readonly input: Input) {
     this.scene.fog = new THREE.FogExp2(0x05060a, 0.18);
@@ -36,8 +43,29 @@ export class EntryRoom implements MemoryScene {
   }
 
   update(ctx: FrameContext): void {
-    this.core.rotation.y = ctx.time * 0.08;
-    this.core.rotation.x = ctx.time * 0.04;
+    // --- Eye contact ------------------------------------------------------
+    // Project the smoothed pointer onto a plane at the core's depth, then
+    // slerp the core's orientation toward "looking at" that world point.
+    // A tiny idle rotation is blended in so the core never feels frozen.
+    this.raycaster.setFromCamera(this.input.smooth, this.camera);
+    const ray = this.raycaster.ray;
+    // Plane facing the camera, passing through the core.
+    this.gazePlane.normal.subVectors(this.camera.position, this.core.position).normalize();
+    this.gazePlane.constant = -this.gazePlane.normal.dot(this.core.position);
+    if (!ray.intersectPlane(this.gazePlane, this.gazeWorld)) {
+      this.gazeWorld.copy(this.camera.position);
+    }
+
+    this.lookMatrix.lookAt(this.core.position, this.gazeWorld, this.core.up);
+    this.lookQuat.setFromRotationMatrix(this.lookMatrix);
+
+    // Idle drift — a very slow yaw so the surface never reads as paused.
+    this.idleQuat.setFromAxisAngle(this.idleAxis, ctx.time * 0.05);
+    this.lookQuat.multiply(this.idleQuat);
+
+    // Frame-rate-independent damp; lower factor = AI 'thinks about looking'.
+    const k = 1 - Math.exp(-2.4 * ctx.delta);
+    this.core.quaternion.slerp(this.lookQuat, k);
 
     const u = this.material.uniforms;
     u.uTime.value = ctx.time;
