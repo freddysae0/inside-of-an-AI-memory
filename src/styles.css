@@ -104,7 +104,8 @@ body { min-height: 100vh; }
 }
 .outro.is-visible { opacity: 1; }
 .outro__tag  { margin: 0 0 1.25rem; color: var(--muted); font-size: 10px; letter-spacing: 0.5em; }
-.outro__line { margin: 0 0 1.5rem; font-size: 14px; font-weight: 500; letter-spacing: 0.32em; }
+.outro__line { margin: 0 0 0.5rem; font-size: 15px; font-weight: 500; letter-spacing: 0.18em; line-height: 1.45; }
+.outro__sub  { margin: 0 0 1.5rem; color: #aab1bf; font-size: 12px; letter-spacing: 0.20em; }
 .outro__by   { margin: 0; color: var(--muted); font-size: 10px; letter-spacing: 0.32em; }
 
 .progress {
