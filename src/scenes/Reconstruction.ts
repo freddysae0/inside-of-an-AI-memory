@@ -1,22 +1,35 @@
 import * as THREE from 'three';
-import { MeshSurfaceSampler } from 'three/examples/jsm/math/MeshSurfaceSampler.js';
 import type { MemoryScene } from '../core/SceneManager';
 import type { FrameContext } from '../core/AnimationManager';
 import type { ScrollDirector } from '../core/ScrollDirector';
 import { DustMaterial } from '../shaders/dust/DustMaterial';
+import { renderTextToCanvas } from '../utils/textCanvas';
+import { sampleTextPositions } from '../utils/textTargetSampler';
 
 /**
- * RECONSTRUCTION — the mirror of DATASETS, but on purpose incomplete.
+ * RECONSTRUCTION — the AI's last word.
  *
- * About 25% of the dust never finds the silhouette. Those particles
- * (aSeed > 0.75) keep drifting forever, desaturated and dimmed, while
- * the other 75% lock onto a sphere smaller than the entry core. What
- * comes back is not what left.
+ * Symmetric to DATASETS: dust forms text. But where DATASETS cycled
+ * through fragments of prompts the AI *received*, RECONSTRUCTION
+ * holds a single phrase the AI *says back*. The reconstruction isn't
+ * a shape that returns — it's a sentence the AI manages to finish
+ * before the page closes.
  *
- * The whole that survived has the same shape; what's gone is the
- * surrounding cloud that drifts because there's no surface for it.
- * That's the symbol. Don't be tempted to make this 'cleaner'.
+ * 25% of particles never join the phrase. They drift around it as
+ * residue — the parts of the conversation that couldn't be brought
+ * back. With the dust-shader alpha bug fixed they stay dim (0.28)
+ * forever, so the field reads as 'still', not 'accumulating'.
+ *
+ * Cluster gently sways ±4.6° instead of rotating fully — text on
+ * particles can't survive a half-turn (back face would mirror), so
+ * we cap the motion to what preserves readability.
  */
+const FINAL_PHRASE = 'you were here.';
+
+const N = 70_000;
+const WORLD_W = 4.2;
+const WORLD_H = 0.9;
+
 export class Reconstruction implements MemoryScene {
   readonly id = 'reconstruction';
   readonly scene = new THREE.Scene();
@@ -29,11 +42,8 @@ export class Reconstruction implements MemoryScene {
     this.scene.fog = new THREE.FogExp2(0x040611, 0.10);
     this.camera.position.set(0, 0, 4);
 
-    const N = 70_000;
     const base = new Float32Array(N * 3);
-    const target = new Float32Array(N * 3);
     const seed = new Float32Array(N);
-
     for (let i = 0; i < N; i++) {
       base[i * 3 + 0] = (Math.random() - 0.5) * 5.0;
       base[i * 3 + 1] = (Math.random() - 0.5) * 5.0;
@@ -41,19 +51,17 @@ export class Reconstruction implements MemoryScene {
       seed[i] = Math.random();
     }
 
-    // Target shape — a sphere smaller than the entry core (1.05 → 0.86).
-    // What returns is recognisably the same shape but visibly diminished.
-    const sphereGeo = new THREE.IcosahedronGeometry(0.86, 5);
-    const sphereMesh = new THREE.Mesh(sphereGeo);
-    const sampler = new MeshSurfaceSampler(sphereMesh).build();
-    const t = new THREE.Vector3();
-    for (let i = 0; i < N; i++) {
-      sampler.sample(t);
-      target[i * 3 + 0] = t.x;
-      target[i * 3 + 1] = t.y;
-      target[i * 3 + 2] = t.z;
-    }
-    sphereGeo.dispose();
+    // Target = pixel-sampled positions from the rendered phrase. Same
+    // canvas dimensions as DATASETS so the two sectors visually rhyme —
+    // the user reads the AI's reply at the same scale they read the
+    // prompts that shaped it.
+    const canvas = renderTextToCanvas(FINAL_PHRASE, {
+      width: 1600, height: 340, fontPx: 200,
+    });
+    const target = sampleTextPositions(canvas, {
+      count: N, worldWidth: WORLD_W, worldHeight: WORLD_H,
+      zSpread: 0.12, pixelStride: 1,
+    });
 
     const geom = new THREE.BufferGeometry();
     geom.setAttribute('position', new THREE.BufferAttribute(base, 3));
@@ -63,16 +71,15 @@ export class Reconstruction implements MemoryScene {
     geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 5);
 
     this.material = new DustMaterial();
-    // Whiter, calmer palette than DATASETS — signals 'coming home'.
-    this.material.uniforms.uColorA.value.set('#cfe1ff');
-    this.material.uniforms.uColorB.value.set('#fff0f2');
-    // uSize 1.7 was too large — 80-px dots with bloom on 70k particles
-    // saturated the field and made the scene feel always-active. 1.1
-    // is dense enough to read as a sphere without dominating bloom.
-    this.material.uniforms.uSize.value = 1.1;
-    // 25% of particles never find the surface — they drift, desaturated,
-    // around the diminished sphere. Drift slows to a halt as the
-    // silhouette settles (see uForm-gated settledLostSpeed in dust.vert).
+    // Warm-white palette so the phrase reads as 'daylight', not
+    // 'data'. Different colour register from DATASETS (cool blue/violet)
+    // — same medium, opposite hour.
+    this.material.uniforms.uColorA.value.set('#f4ecdf');
+    this.material.uniforms.uColorB.value.set('#ffd9d4');
+    this.material.uniforms.uSize.value = 0.85;
+    this.material.uniforms.uDriftScale.value = 0.55;
+    // 25% of particles never find the phrase — they drift, dim and
+    // desaturated, around what the AI managed to say back.
     this.material.uniforms.uLostThreshold.value = 0.75;
     this.points = new THREE.Points(geom, this.material);
     this.points.frustumCulled = false;
@@ -87,16 +94,25 @@ export class Reconstruction implements MemoryScene {
 
     const local = this.scroll.sector === this.sectorIndex ? this.scroll.local : 0;
 
-    // Gentle continuous spin so the partial sphere reads as 'alive,
-    // still being held' rather than 'frozen artefact'. Speed 0.035
-    // is slower than the earlier 0.05 — the silhouette is meant to
-    // settle, not parade. Plus a scroll-tied bias so descending feels
-    // like nudging it.
-    this.points.rotation.y = ctx.time * 0.035 + local * 0.2;
+    // Bounded sway, not full rotation. Y±4.6° at 0.25 Hz, Z±1.4° at
+    // 0.17 Hz. Anything past ±10° on Y starts to make letters skew
+    // unreadably; anything that crosses 90° would flip the back-face
+    // UVs and read mirrored. The text needs to be readable always.
+    this.points.rotation.y = Math.sin(ctx.time * 0.25) * 0.08;
+    this.points.rotation.z = Math.sin(ctx.time * 0.17) * 0.025;
 
-    // Local progress monotonically ramps form 0 → 1; particles lock in.
-    const form = THREE.MathUtils.smoothstep(local, 0.0, 0.85);
+    // Phrase forms slowly from local 0.5 → 0.85, then holds. Earlier
+    // start (was 0 → 0.85) meant the user saw fragmented half-text for
+    // most of the sector — now the swarm drifts honestly until the
+    // descent earns the sentence.
+    const form = THREE.MathUtils.smoothstep(local, 0.5, 0.85);
     this.material.uniforms.uForm.value = form;
+
+    // Soft hand-off to the HTML outro (which fades in at journey>0.95).
+    // 3D phrase fades from local=0.95 → 1.0 so the in-narrative voice
+    // gives way to the credits voice without overlapping.
+    const fadeOut = 1 - THREE.MathUtils.smoothstep(local, 0.95, 1.0);
+    this.material.uniforms.uOpacity.value = fadeOut;
   }
 
   resize(width: number, height: number): void {
