@@ -1,21 +1,28 @@
 import * as THREE from 'three';
 import type { FrameContext } from '../../core/AnimationManager';
+import { FireOrbMaterial } from '../../shaders/fire/FireOrbMaterial';
 
 /**
- * Joy — outward radiation.
+ * Joy — outward radiation, embodied as flame balls.
  *
- * Warm bright orbs spawn from the blob's centre and shoot outward in
- * random directions, fading and shrinking before recycling. The motion
- * vocabulary is 'giving' rather than 'receiving' — joy as expansion,
- * as something insisting on being shared. Bloom does most of the
- * lifting; orbs are intentionally bright to trigger the bloom pass.
+ * Each orb is a sphere driven by a custom fire shader: two-octave
+ * simplex turbulence displaces the mesh upward, the fragment maps the
+ * same noise to a four-stop heat ramp (black → red → yellow → white).
+ * Per-orb seed uniforms guarantee no two flames look identical.
+ *
+ * The orb scale animation is replaced by a shader-side uLifeFade
+ * uniform — the mesh stays at unit scale and only the rendered
+ * brightness/alpha fades. This keeps the flame turbulence sharp at
+ * spawn and silhouette-soft at death, instead of just shrinking.
  */
 const POOL_SIZE = 48;
-const SPAWN_RATE_AT_FULL = 14;        // orbs per second at weight=1
+const SPAWN_RATE_AT_FULL = 14;
 const LIFETIME_MIN = 0.7;
 const LIFETIME_MAX = 1.15;
 const SPEED_MIN = 1.6;
 const SPEED_MAX = 2.8;
+const ORB_RADIUS = 0.085;            // bigger than before (0.05) — flame
+                                     // turbulence pushes silhouette outward
 const OFFSCREEN_Y = -100;
 
 interface OrbState {
@@ -38,22 +45,22 @@ export class JoyOrbs {
   weight = 0;
 
   constructor() {
-    const geom = new THREE.SphereGeometry(0.05, 12, 8);
+    // 16×12 is enough — the displacement shader makes a smoother sphere
+    // look bumpier than its tessellation suggests.
+    const geom = new THREE.SphereGeometry(ORB_RADIUS, 16, 12);
 
     for (let i = 0; i < POOL_SIZE; i++) {
-      const mat = new THREE.MeshBasicMaterial({
-        color: 0xffb070,
-        transparent: true,
-        opacity: 1,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        // Fog off on orbs — they're meant to read at any depth so the
-        // joy reads in the user's foreground.
-        fog: false,
-      });
+      const mat = new FireOrbMaterial();
+      // Per-orb seed offset — unique fire pattern per flame. The 47.13
+      // multiplier is arbitrary, just spreads the seeds across the
+      // noise field so neighbours don't share a pattern by accident.
+      mat.uniforms.uSeed.value.set(
+        Math.random() * 47.13,
+        Math.random() * 31.71,
+        Math.random() * 23.49,
+      );
       const mesh = new THREE.Mesh(geom, mat);
       mesh.position.set(0, OFFSCREEN_Y, 0);
-      mesh.scale.setScalar(0);
       this.group.add(mesh);
       this.meshes.push(mesh);
       this.state.push({
@@ -78,28 +85,25 @@ export class JoyOrbs {
       const s = this.state[i]!;
       if (!s.active) continue;
       const mesh = this.meshes[i]!;
+      const mat = mesh.material as FireOrbMaterial;
       const elapsed = ctx.time - s.startTime;
       const t = elapsed / s.lifetime;
       if (t >= 1) {
         s.active = false;
         mesh.position.set(0, OFFSCREEN_Y, 0);
-        mesh.scale.setScalar(0);
+        mat.uniforms.uLifeFade.value = 0;
         continue;
       }
 
-      // Linear outward — easing the position would soften the 'shoot'
-      // gesture which is the whole point.
+      // Linear outward — keeping the 'shoot' gesture sharp.
       const dist = s.speed * elapsed;
       mesh.position.set(s.dirX * dist, s.dirY * dist, s.dirZ * dist);
 
-      // Shrink + fade across lifetime. Slight bias so the orb is
-      // brightest in its first third — joy as initial spark.
+      // Lifetime envelope: quick brighten, long sustain, slow fade.
       const fadeIn  = THREE.MathUtils.smoothstep(t, 0, 0.12);
       const fadeOut = 1 - t;
-      const opacity = fadeIn * fadeOut;
-      const scale = 1.0 - t * 0.55;
-      (mesh.material as THREE.MeshBasicMaterial).opacity = opacity;
-      mesh.scale.setScalar(Math.max(scale, 0.001));
+      mat.uniforms.uTime.value = ctx.time;
+      mat.uniforms.uLifeFade.value = fadeIn * fadeOut;
     }
   }
 
@@ -110,9 +114,8 @@ export class JoyOrbs {
     }
     if (slot < 0) return;
 
-    // Uniform direction on the unit sphere via the standard
-    // polar/azimuthal sampling. Cos(phi) lets phi tilt above and
-    // below the equator equally — orbs don't bias upward or downward.
+    // Uniform direction on the unit sphere — polar/azimuthal sampling
+    // with cos(phi) so up/down aren't biased.
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
     const sinPhi = Math.sin(phi);
