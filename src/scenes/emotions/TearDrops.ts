@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { FrameContext } from '../../core/AnimationManager';
+import { WaterDropMaterial } from '../../shaders/water/WaterDropMaterial';
 
 /**
  * Sad — gravity made visible.
@@ -34,29 +35,23 @@ export class TearDrops {
   readonly group = new THREE.Group();
   private readonly meshes: THREE.Mesh[] = [];
   private readonly state: TearState[] = [];
-  private readonly material: THREE.MeshBasicMaterial;
   private spawnAccumulator = 0;
 
   /** 0..1 — driven by the sad emotion weight. 0 = no drops spawn. */
   weight = 0;
 
   constructor() {
-    // BasicMaterial because we want bloom-tonable colour without
-    // needing scene lighting; transparency is per-instance via
-    // mesh.material clones (we share the geometry, not the material).
-    this.material = new THREE.MeshBasicMaterial({
-      color: 0x4a6fa5,
-      transparent: true,
-      opacity: 1,
-      depthWrite: false,
-      fog: true,
-    });
-    // Sphere subdivided cheaply — drops are tiny on screen.
-    const geom = new THREE.SphereGeometry(0.045, 10, 8);
+    // Sphere subdivided cheaply — drops are tiny on screen. Higher
+    // tessellation than before because the water shader benefits from
+    // smoother normals at the silhouette (fresnel rim quality).
+    const geom = new THREE.SphereGeometry(0.05, 14, 12);
 
     for (let i = 0; i < POOL_SIZE; i++) {
-      // Each tear owns its own material clone so opacity is per-drop.
-      const mat = this.material.clone();
+      // Each tear owns its own WaterDropMaterial clone — needed
+      // because uOpacity (and one day per-drop colour shifts) varies
+      // per instance, and there's no per-instance uniform mechanism
+      // without InstancedMesh.
+      const mat = new WaterDropMaterial();
       const mesh = new THREE.Mesh(geom, mat);
       mesh.position.set(0, OFFSCREEN_Y, 0);
       mesh.scale.set(0, 0, 0);
@@ -109,8 +104,10 @@ export class TearDrops {
       // Opacity envelope: quick fade-in, long sustain, fade into fog.
       const fadeIn  = THREE.MathUtils.smoothstep(t, 0, 0.15);
       const fadeOut = 1 - THREE.MathUtils.smoothstep(t, 0.7, 1);
-      const opacity = fadeIn * fadeOut * 0.78;
-      (mesh.material as THREE.MeshBasicMaterial).opacity = opacity;
+      const opacity = fadeIn * fadeOut * 0.95;
+      const mat = mesh.material as WaterDropMaterial;
+      mat.uniforms.uOpacity.value = opacity;
+      mat.uniforms.uTime.value = ctx.time;
     }
   }
 
