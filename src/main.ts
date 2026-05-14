@@ -6,6 +6,7 @@ import { PostFX } from './core/PostFX';
 import { ScrollDirector } from './core/ScrollDirector';
 import { Transitions } from './core/Transitions';
 import { CorruptionEffect } from './core/Corruption';
+import { RadialBlurEffect } from './core/RadialBlur';
 import { Audio } from './core/Audio';
 import { AssetLoader } from './core/AssetLoader';
 import { PerfMonitor } from './core/PerfMonitor';
@@ -27,6 +28,8 @@ const sceneMgr = new SceneManager();
 const postfx = new PostFX({ gl: renderer.gl });
 const corruption = new CorruptionEffect();
 postfx.appendEffect(corruption);
+const radialBlur = new RadialBlurEffect();
+postfx.appendEffect(radialBlur);
 const transitions = new Transitions(renderer.gl);
 postfx.appendEffect(transitions.effect);
 const scroll = new ScrollDirector(SECTORS.length);
@@ -52,7 +55,7 @@ const loader = new AssetLoader();
 const getEntry = loader.add('entry sector',         () => new EntryRoom(input));
 const getDatasets = loader.add('datasets sector',   () => new Datasets(scroll));
 const getEmotions = loader.add('emotions sector',   () => new Emotions(scroll));
-const getCorruptionScene = loader.add('corruption sector', () => new Corruption(scroll, corruption, hud));
+const getCorruptionScene = loader.add('corruption sector', () => new Corruption(scroll, corruption, radialBlur, hud));
 const getReconstruction = loader.add('reconstruction sector', () => new Reconstruction(scroll));
 
 loader.onProgress((p) => {

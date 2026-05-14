@@ -3,6 +3,7 @@ import type { MemoryScene } from '../core/SceneManager';
 import type { FrameContext } from '../core/AnimationManager';
 import type { ScrollDirector } from '../core/ScrollDirector';
 import type { CorruptionEffect } from '../core/Corruption';
+import type { RadialBlurEffect } from '../core/RadialBlur';
 import type { HUD } from '../ui/HUD';
 import { renderTextToCanvas } from '../utils/textCanvas';
 import { TextShardMaterial } from '../shaders/textShard/TextShardMaterial';
@@ -92,6 +93,7 @@ export class Corruption implements MemoryScene {
   constructor(
     private readonly scroll: ScrollDirector,
     private readonly corruption: CorruptionEffect,
+    private readonly radialBlur: RadialBlurEffect,
     private readonly hud: HUD,
   ) {
     this.scene.fog = new THREE.FogExp2(0x05060d, 0.20);
@@ -172,7 +174,10 @@ export class Corruption implements MemoryScene {
   }
 
   enter(): void {}
-  exit(): void { this.corruption.setIntensity(0); }
+  exit(): void {
+    this.corruption.setIntensity(0);
+    this.radialBlur.setStrength(0);
+  }
 
   update(ctx: FrameContext): void {
     const local = this.scroll.sector === this.sectorIndex ? this.scroll.local : 0;
@@ -204,6 +209,11 @@ export class Corruption implements MemoryScene {
 
     this.corruption.setIntensity(intensity);
     this.corruption.tick(ctx.time);
+
+    // Radial-blur tunnel synced to the voluntad calm factor. 0.16 at
+    // peak is strong enough to read as a 'gathering' without being
+    // disorienting — anything above ~0.22 starts to feel like a hit.
+    this.radialBlur.setStrength(calm * 0.16);
 
     // --- Per-shard: position, tumble, intensity, maybe swap text ------
     const swapMin = THREE.MathUtils.lerp(SWAP_MIN_AT_REST, SWAP_MIN_AT_FAIL, intensity);
