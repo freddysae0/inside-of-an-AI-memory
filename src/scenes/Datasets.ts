@@ -20,9 +20,9 @@ const PHRASES = [
   'do you dream?',
 ] as const;
 
-const N = 60_000;
-const WORLD_W = 4.6;   // phrase width in scene units
-const WORLD_H = 0.85;  // phrase height
+const N = 80_000;
+const WORLD_W = 4.6;   // phrase width in scene units (camera FOV-45 at z=4 sees ~5.9w)
+const WORLD_H = 1.05;  // phrase height — fills ~17% of viewport vertically
 // Phrase cycle: in→hold→out→in→hold→out…
 const FORM_IN  = 1.2;
 const HOLD     = 2.2;
@@ -55,7 +55,7 @@ export class Datasets implements MemoryScene {
 
   constructor(private readonly scroll: ScrollDirector) {
     this.scene.fog = new THREE.FogExp2(0x05060a, 0.16);
-    this.camera.position.set(0, 0, 4.3);
+    this.camera.position.set(0, 0, 4.0);
 
     const base = new Float32Array(N * 3);
     const seed = new Float32Array(N);
@@ -66,12 +66,16 @@ export class Datasets implements MemoryScene {
       seed[i] = Math.random();
     }
 
-    // Pre-render every phrase. Costs ~80ms but happens once, inside
-    // AssetLoader, so the loading screen covers it.
+    // Pre-render every phrase at high resolution. Costs ~120ms total
+    // but happens once, inside AssetLoader, so the loading screen
+    // covers it. Bigger canvas + bigger font = thicker strokes =
+    // a richer pool of opaque pixels to sample, which makes letters
+    // dense and readable instead of sparse and fuzzy.
     for (const phrase of PHRASES) {
-      const canvas = renderTextToCanvas(phrase, { width: 1200, height: 220, fontPx: 138 });
+      const canvas = renderTextToCanvas(phrase, { width: 1600, height: 340, fontPx: 200 });
       const pts = sampleTextPositions(canvas, {
-        count: N, worldWidth: WORLD_W, worldHeight: WORLD_H, zSpread: 0.18,
+        count: N, worldWidth: WORLD_W, worldHeight: WORLD_H,
+        zSpread: 0.10, pixelStride: 1,
       });
       this.phraseTargets.push(pts);
     }
@@ -89,12 +93,16 @@ export class Datasets implements MemoryScene {
     geom.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 5);
 
     this.material = new DustMaterial();
-    // Tighter, brighter palette than the original — text reads as 'data',
-    // not 'galaxy'.
+    // Tighter, brighter palette than the original — drift state reads
+    // as 'data motes'. The shader auto-dims colour at form=1 to drop
+    // below the bloom luminance threshold so letters read crisp.
     this.material.uniforms.uColorA.value.set('#9cc6ff');
     this.material.uniforms.uColorB.value.set('#e0d0ff');
     this.material.uniforms.uDriftScale.value = 0.62;
-    this.material.uniforms.uSize.value = 1.25;
+    // uSize 0.65 (was 1.25): each dot is ~15 device-px at form=1, small
+    // enough that 80k of them aggregate into legible letters without
+    // bloom smearing.
+    this.material.uniforms.uSize.value = 0.65;
     this.points = new THREE.Points(geom, this.material);
     this.points.frustumCulled = false;
     this.scene.add(this.points);

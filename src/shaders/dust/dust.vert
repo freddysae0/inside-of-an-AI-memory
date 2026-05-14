@@ -24,7 +24,10 @@ void main() {
   vec3 driftPos = aBase + drift(aBase + aSeed * 7.0, uTime) * uDriftScale;
 
   // Per-particle ease — adds shape "swarming in" instead of all-at-once snap.
-  float t = clamp(uForm + (aSeed - 0.5) * 0.25, 0.0, 1.0);
+  // Stagger amplitude was 0.25 (12.5% drift remainder at form=1) which left
+  // letters fuzzy. 0.08 still staggers visibly while letting every particle
+  // converge onto the target at the moment of reading.
+  float t = clamp(uForm + (aSeed - 0.5) * 0.08, 0.0, 1.0);
   t = smoothstep(0.0, 1.0, t);
 
   vec3 pos = mix(driftPos, aTarget, t);
@@ -32,9 +35,19 @@ void main() {
   vec4 mv = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mv;
 
-  // Perspective-correct point size, with a small breathing wobble.
-  float wobble = 0.85 + 0.3 * sin(uTime * 1.5 + aSeed * 6.28);
-  gl_PointSize = uSize * wobble * (300.0 / -mv.z);
+  // Point size composes three factors:
+  //   uSize         — material-level base radius
+  //   wobble        — breathing wobble that fades as the swarm forms
+  //                   (uniform-sized dots at form=1 keep letters crisp)
+  //   distance term — perspective-correct scaling (300 / -mv.z)
+  //
+  // Bloom on bright additive points blurs letters into mush if dots are
+  // big; the sizeScale mix dims and shrinks dots when forming so text
+  // reads as crisp text, not glow.
+  float wobbleBase = 0.85 + 0.30 * sin(uTime * 1.5 + aSeed * 6.28);
+  float wobble = mix(wobbleBase, 0.90, uForm);
+  float sizeScale = mix(1.0, 0.62, uForm);
+  gl_PointSize = uSize * wobble * sizeScale * (300.0 / -mv.z);
 
   vSeed = aSeed;
   vDepth = -mv.z;
