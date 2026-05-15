@@ -13,16 +13,19 @@ const SHARD_COUNT = 32;                                   // up from 10
 const SHARD_SIZE  = new THREE.Vector2(0.78, 0.14);        // 1200:220 canvas aspect
 const TEXT_CANVAS = { width: 1200, height: 220, fontPx: 130 };
 
-// Depth gradient — shards distribute across a wide distance range so
-// close ones (big, bright) act as focal phrases the user reads, and
-// distant ones (small, dim) act as atmospheric residue. Sells 'vast
-// memory leaking', not 'ten shards in a tight ring'.
-const DISTANCE_MIN = 1.00;
-const DISTANCE_MAX = 2.55;
+// Depth gradient — shards distribute across a distance range so close
+// ones (big, bright) act as focal phrases the user reads, and distant
+// ones (smaller, slightly dimmer) still read as text instead of
+// atmospheric blur. Previous range 1.00–2.55 with 0.55× scale / 0.42
+// opacity at the far end pushed background shards past the legibility
+// threshold; tightened to 0.95–1.85 with 0.80× / 0.70 so every shard
+// is readable while the foreground/background distinction stays.
+const DISTANCE_MIN = 0.95;
+const DISTANCE_MAX = 1.85;
 const SCALE_AT_NEAR = 1.00;
-const SCALE_AT_FAR  = 0.55;
+const SCALE_AT_FAR  = 0.80;
 const OPACITY_AT_NEAR = 1.00;
-const OPACITY_AT_FAR  = 0.42;
+const OPACITY_AT_FAR  = 0.70;
 
 // Per-shard swap rate — scales inversely with intensity so memory leaks
 // faster as the AI fails harder. Tightened from 3–8s to 2–6s now that
@@ -115,7 +118,10 @@ export class Corruption implements MemoryScene {
     private readonly hud: HUD,
   ) {
     this.scene.fog = new THREE.FogExp2(0x05060d, 0.20);
-    this.camera.position.set(0, 0, 4.6);
+    // Camera pulled from 4.6 → 3.9. Tighter framing — the cluster fills
+    // more of the viewport, far shards stay readable, and the global
+    // corruption pass + dissolves feel more 'in your face'.
+    this.camera.position.set(0, 0, 3.9);
 
     this.cluster = new THREE.Group();
     this.scene.add(this.cluster);
