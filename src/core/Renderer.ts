@@ -14,7 +14,7 @@ export class Renderer {
   private readonly onResize = () => this.resize();
 
   constructor(opts: RendererOptions) {
-    this.maxDpr = opts.maxPixelRatio ?? 2;
+    this.maxDpr = opts.maxPixelRatio ?? 1;
     this.dpr = Math.min(window.devicePixelRatio, this.maxDpr);
 
     this.gl = new THREE.WebGLRenderer({
