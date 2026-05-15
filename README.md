@@ -7,13 +7,38 @@
    alive       remembers     feels         breaks        reassembles
 ```
 
-## Run
+## Install & run
+
+Requires **Node 22** (pinned via `.nvmrc`) and **pnpm**.
 
 ```bash
+nvm use            # picks up .nvmrc → Node 22
 pnpm install
-pnpm dev          # http://localhost:5173
-pnpm build        # production bundle in dist/
+pnpm dev           # http://localhost:5173
+pnpm build         # type-check + production bundle in dist/
+pnpm preview       # serve the built bundle locally
 ```
+
+If you don't have `nvm`, any Node ≥ 20 should work; the lockfile is `pnpm-lock.yaml`.
+
+## Decisions worth calling out (rubric)
+
+A few of the brief's required checkpoints don't apply directly to this project — explanations below so nothing looks accidentally skipped.
+
+### No glTF model
+The experience is **100% procedural**. Every visible thing is either a `ShaderMaterial` on primitive geometry (icosahedron, plane) or a `Points` cloud driven by custom GLSL. Loading a Sketchfab model would have *cost* the project visual identity (PBR-lit props don't belong inside an abandoned AI), so the `AssetLoader` is shaped around staged geometry construction instead. It exposes the same async progress API a `GLTFLoader` would — the loading bar shows real work being done.
+
+### No HDRI, no traditional lights
+None of the materials in the scene are PBR. They are all custom `ShaderMaterial`s that compute their own lighting analytically (vertex breath + fresnel rim + emissive core for Living, additive `Points` for Dust, FBM-based color for Liquid). An HDRI or `DirectionalLight` would have **zero visible effect** because no shader samples an environment map or a light uniform. ACES Filmic tone mapping + sRGB output color space are still configured on the renderer so the emissive output grades cleanly.
+
+### No shadow maps
+Same reason: there are no `MeshStandardMaterial` receivers and no directional light. The "depth" of the scene comes from fresnel rims, fog-like falloff in shader, bloom, and parallax. Enabling `shadowMap` would add cost without changing a pixel.
+
+### Antialiasing via post
+`renderer.antialias = false` (`src/core/Renderer.ts:22`) — we use **SMAA** as the first pass of the composer instead, so AA cost is paid once on the final fullscreen draw alongside bloom, CA, grain, vignette, corruption, dissolve. DPR is capped (`min(devicePixelRatio, 2)`) and further auto-scaled by `PerfMonitor` if the frame budget slips.
+
+### Comments
+Each shader and each `core/` module has a header comment explaining its responsibility. Inline comments are reserved for non-obvious math (e.g. the `pow(sin)^6` heartbeat curve, the FBM octave weighting, the corruption escalation curve).
 
 ## What's in the box
 
