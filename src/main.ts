@@ -7,7 +7,6 @@ import { ScrollDirector } from './core/ScrollDirector';
 import { Transitions } from './core/Transitions';
 import { CorruptionEffect } from './core/Corruption';
 import { RadialBlurEffect } from './core/RadialBlur';
-import { Audio } from './core/Audio';
 import { AssetLoader } from './core/AssetLoader';
 import { PerfMonitor } from './core/PerfMonitor';
 import { HUD } from './ui/HUD';
@@ -34,14 +33,7 @@ const transitions = new Transitions(renderer.gl);
 postfx.appendEffect(transitions.effect);
 const scroll = new ScrollDirector(SECTORS.length);
 const hud = new HUD();
-const audio = new Audio();
 const anim = new AnimationManager();
-
-const audioToggle = document.getElementById('audio-toggle') as HTMLButtonElement | null;
-audioToggle?.addEventListener('click', () => {
-  audio.start();
-  audioToggle.setAttribute('aria-pressed', 'true');
-});
 
 const initialCopy = SECTOR_COPY[0];
 if (initialCopy) hud.setSector(initialCopy);
@@ -125,18 +117,8 @@ async function boot(): Promise<void> {
     perf.tick(ctx.delta);
     input.update(ctx.delta);
     scroll.update(ctx.time);
-    audio.update();
-
-    const bassBoost = audio.bass;
-    entry.setAudioBass(bassBoost);
-    emotions.setAudioBass(bassBoost);
 
     sceneMgr.update(ctx);
-
-    if (scroll.sector === 3) {
-      const cur = corruption.uniforms.get('uIntensity');
-      if (cur) cur.value = Math.max(cur.value, bassBoost * 0.5);
-    }
 
     transitions.update(ctx.delta);
     postfx.render(ctx.delta);

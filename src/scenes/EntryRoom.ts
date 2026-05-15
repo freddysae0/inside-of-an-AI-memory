@@ -40,11 +40,6 @@ export class EntryRoom implements MemoryScene {
   enter(): void {}
   exit(): void {}
 
-  /** Boost the breath amplitude by an audio-derived 0..1 value. */
-  setAudioBass(v: number): void {
-    this.material.uniforms.uBreath.value = 0.08 + v * 0.10;
-  }
-
   update(ctx: FrameContext): void {
     // --- Eye contact ------------------------------------------------------
     // Bounded yaw + pitch from the smoothed pointer NDC, plus a slow idle
