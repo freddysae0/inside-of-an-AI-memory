@@ -2,6 +2,17 @@
 
 > A scroll-driven WebGL experience: descend through five sectors of an abandoned AI's memory core. Built as the final project for **Harbour.Space — WebGL in Practice** (instructor: Roberto Borghesi).
 
+<table>
+  <tr>
+    <td><img src="docs/entry.png" alt="Entry sector: the breathing memory core"></td>
+    <td><img src="docs/datasets.png" alt="Datasets sector: drifting fragments of training text"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Entry: the core still breathes</sub></td>
+    <td align="center"><sub>Datasets: what it learned</sub></td>
+  </tr>
+</table>
+
 ```
    ENTRY ──▶ DATASETS ──▶ EMOTIONS ──▶ CORRUPTION ──▶ RECONSTRUCTION
    alive       remembers     feels         breaks        reassembles
